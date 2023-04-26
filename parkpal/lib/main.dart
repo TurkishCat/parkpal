@@ -40,7 +40,7 @@ class _MapAppState extends State<MapApp> {
 
   void _getCurrentLocation() async {
     // Get the current location coordinates
-    DartPluginRegistrant.ensureInitialized();
+    
     final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
 
@@ -50,7 +50,7 @@ class _MapAppState extends State<MapApp> {
   }
 
   Future<Position> _determinePosition() async {
-    DartPluginRegistrant.ensureInitialized();
+   
     LocationPermission permission;
 
     permission = await Geolocator.checkPermission();
