@@ -40,7 +40,7 @@ class _MapAppState extends State<MapApp> {
 
   void _getCurrentLocation() async {
     // Get the current location coordinates
-    
+
     final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high);
 
@@ -50,7 +50,6 @@ class _MapAppState extends State<MapApp> {
   }
 
   Future<Position> _determinePosition() async {
-   
     LocationPermission permission;
 
     permission = await Geolocator.checkPermission();
@@ -78,7 +77,32 @@ class _MapAppState extends State<MapApp> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _getCurrentLocation,
-        child: Icon(Icons.add),
+        child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.red,
+        selectedItemColor: Colors.red,
+        unselectedItemColor: Colors.grey,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.map_rounded),
+            label: "Map",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.abc_sharp),
+            label: "Session",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.car_rental),
+            label: "My Cars",
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_box),
+            label: "Account",
+          ),
+        ],
       ),
     );
   }
