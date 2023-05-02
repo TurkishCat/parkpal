@@ -1,11 +1,14 @@
 import 'dart:convert';
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
-import 'package:geolocator/geolocator.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
+import 'classes/street.dart';
+
 
 void main() {
   runApp(MainApp());
@@ -30,54 +33,74 @@ class MapApp extends StatefulWidget {
 }
 
 class _MapAppState extends State<MapApp> {
-  Position? _position;
+  Street duboisstraat = Street(
+    name: "Duboisstraat",
+    lat: 51.229144,
+    long: 4.419320,
+    parkspaces: 12
+  );
+  
 
+  final MapController mapController = MapController();
+
+  // final _mapController = osm.MapController(
+  //   initPosition: GeoPoint(latitude: 51.228939, longitude: 4.419669),
+  //   initMapWithUserPosition: false,
+  //   areaLimit: BoundingBox(
+  //       north: 51.227703, east: 4.418634, south: 51.230148, west: 4.420742),
+  // );
+
+  var markerMap = <String, String>{};
   @override
   void initState() {
     super.initState();
-    _determinePosition();
-  }
-
-  void _getCurrentLocation() async {
-    // Get the current location coordinates
-
-    final position = await Geolocator.getCurrentPosition(
-        desiredAccuracy: LocationAccuracy.high);
-
-    setState(() {
-      _position = position;
-    });
-  }
-
-  Future<Position> _determinePosition() async {
-    LocationPermission permission;
-
-    permission = await Geolocator.checkPermission();
-
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-    }
-    if (permission == LocationPermission.denied) {
-      return Future.error('Location permissions are denied');
-    }
-
-    return await Geolocator.getCurrentPosition();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("ParkPal"),
+        title: const Text("ParkPal"),
       ),
-      body: Center(
-        child: _position != null
-            ? Text('Current location: ' + _position.toString())
-            : Text('No data'),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _getCurrentLocation,
-        child: const Icon(Icons.add),
+      body: FlutterMap(
+        mapController: mapController,
+        options: MapOptions(
+          center: LatLng(
+            51.228939,
+            4.419669,
+          ), // Set the center of the map to San Francisco
+          zoom: 18.0,
+          maxZoom: 18.0,
+          minZoom: 18.0, // Set the zoom level of the map
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            subdomains: const ['a', 'b', 'c'],
+          ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                width: 80.0,
+                height: 80.0,
+                point: LatLng(
+                  duboisstraat.lat,
+                  duboisstraat.long,
+                ), // Set the coordinates of the marker
+                builder: (ctx) => GestureDetector(
+                  onTap: () {
+                    showModal(context);
+                  },
+                  child: const Icon(
+                    Icons.location_on,
+                    color: Colors.red,
+                    size: 50.0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.red,
@@ -107,6 +130,27 @@ class _MapAppState extends State<MapApp> {
     );
   }
 }
+
+void showModal(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: const Text('Marker clicked'),
+        content: const Text('You clicked on the marker'),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+            child: const Text('Close'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
 
   
 
