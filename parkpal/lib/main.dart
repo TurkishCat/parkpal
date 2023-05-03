@@ -10,7 +10,6 @@ import 'package:http/http.dart' as http;
 import 'classes/street.dart';
 import 'package:parkpal/login_screen.dart';
 
-
 void main() {
   runApp(MainApp());
 }
@@ -35,26 +34,57 @@ class MapApp extends StatefulWidget {
 }
 
 class _MapAppState extends State<MapApp> {
-  Street duboisstraat = Street(
+  Street duboisStraat = Street(
     name: "Duboisstraat",
     lat: 51.229144,
     long: 4.419320,
-    parkspaces: 12
+    parkspaces: 12,
   );
-  
+  Street langeDijkStraatNoord = Street(
+    name: "Lange Dijkstraat PRKNOORD",
+    lat: 51.229429,
+    long: 4.420216,
+    parkspaces: 20,
+  );
+  Street langeDijkStraatBeneden = Street(
+    name: "Lange Dijkstraat Beneden",
+    lat: 51.228559,
+    long: 4.419395,
+    parkspaces: 30,
+  );
+  Street fuggerStraatNoord = Street(
+    name: "Fuggerstraat PRKNOORD",
+    lat: 51.229449,
+    long: 4.418714,
+    parkspaces: 20,
+  );
+  Street fuggerStraatBeneden = Street(
+    name: "Fuggerstraat Beneden",
+    lat: 51.228536,
+    long: 4.418703,
+    parkspaces: 35,
+  );
+  Street korteDijkStraat = Street(
+    name: "Korte Dijkstraat",
+    lat: 51.228734,
+    long: 4.420575,
+    parkspaces: 30,
+  );
+
+  List<Street> streets = [];
 
   final MapController mapController = MapController();
 
-  // final _mapController = osm.MapController(
-  //   initPosition: GeoPoint(latitude: 51.228939, longitude: 4.419669),
-  //   initMapWithUserPosition: false,
-  //   areaLimit: BoundingBox(
-  //       north: 51.227703, east: 4.418634, south: 51.230148, west: 4.420742),
-  // );
-
-  var markerMap = <String, String>{};
   @override
   void initState() {
+    streets = [
+      duboisStraat,
+      langeDijkStraatBeneden,
+      langeDijkStraatNoord,
+      fuggerStraatBeneden,
+      fuggerStraatNoord,
+      korteDijkStraat,
+    ];
     super.initState();
   }
 
@@ -63,6 +93,7 @@ class _MapAppState extends State<MapApp> {
     return Scaffold(
       appBar: AppBar(
         title: const Text("ParkPal"),
+        backgroundColor: Colors.red,
       ),
       body: FlutterMap(
         mapController: mapController,
@@ -80,28 +111,7 @@ class _MapAppState extends State<MapApp> {
             urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
             subdomains: const ['a', 'b', 'c'],
           ),
-          MarkerLayer(
-            markers: [
-              Marker(
-                width: 80.0,
-                height: 80.0,
-                point: LatLng(
-                  duboisstraat.lat,
-                  duboisstraat.long,
-                ), // Set the coordinates of the marker
-                builder: (ctx) => GestureDetector(
-                  onTap: () {
-                    showModal(context);
-                  },
-                  child: const Icon(
-                    Icons.location_on,
-                    color: Colors.red,
-                    size: 50.0,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          MarkerLayer(markers: _generateMarkers(context, streets)),
         ],
       ),
       bottomNavigationBar: BottomNavigationBar(
@@ -133,59 +143,66 @@ class _MapAppState extends State<MapApp> {
   }
 }
 
-void showModal(BuildContext context) {
-  showDialog(
+void _showMarkerModal(BuildContext context, Street street) {
+  showModalBottomSheet(
     context: context,
     builder: (BuildContext context) {
-      return AlertDialog(
-        title: const Text('Marker clicked'),
-        content: const Text('You clicked on the marker'),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-            child: const Text('Close'),
+      return Container(
+        height: 200.0,
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Street Name: ${street.name}',
+                style: TextStyle(fontSize: 20.0),
+              ),
+              SizedBox(height: 10.0),
+              Text(
+                'Latitude: ${street.lat}',
+                style: TextStyle(fontSize: 20.0),
+              ),
+              SizedBox(height: 10.0),
+              Text(
+                'Longitude: ${street.long}',
+                style: TextStyle(fontSize: 20.0),
+              ),
+              SizedBox(height: 10.0),
+              Text(
+                'Number of Parking Spaces: ${street.parkspaces}',
+                style: TextStyle(fontSize: 20.0),
+              ),
+            ],
           ),
-        ],
+        ),
       );
     },
   );
 }
 
-
-  
-
-
-
-
-
-
-
-
-
- // FlutterMap(
-        //   options: MapOptions(
-        //     center: LatLng(49.5, -0.09),
-        //     zoom: 10.0,
-        //   ),
-        //   children: [
-        //     TileLayer(
-        //       urlTemplate: "https://{s}.tile.openstreetmap.org/{z}{x}{y}.png",
-        //       subdomains: const ['a', 'b', 'c'],
-        //     ),
-        //     MarkerLayer(
-        //       markers: [
-        //         Marker(
-        //           width: 80.0,
-        //           height: 80.0,
-        //           point: point,
-        //           builder: (ctx) => const Icon(
-        //             Icons.location_on,
-        //             color: Colors.red,
-        //           ),
-        //         ),
-        //       ],
-        //     ),
-        //   ],
-        // ),
+List<Marker> _generateMarkers(BuildContext context, streets) {
+  List<Marker> markers = [];
+  for (Street street in streets) {
+    markers.add(
+      Marker(
+        width: 80.0,
+        height: 80.0,
+        point: LatLng(
+          street.lat,
+          street.long,
+        ),
+        builder: (ctx) => GestureDetector(
+          onTap: () {
+            _showMarkerModal(context, street);
+          },
+          child: const Icon(
+            Icons.location_on,
+            color: Colors.red,
+            size: 50.0,
+          ),
+        ),
+      ),
+    );
+  }
+  return markers;
+}
