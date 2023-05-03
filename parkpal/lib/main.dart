@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'classes/street.dart';
+import 'package:parkpal/login_screen.dart';
 
 
 void main() {
@@ -19,10 +20,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      home: MapApp(),
-    );
-  }
+  return MaterialApp(
+    title: 'My App',
+    home: LoginScreen(),
+  );
+}
 }
 
 class MapApp extends StatefulWidget {
