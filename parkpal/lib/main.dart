@@ -68,6 +68,12 @@ class _MapAppState extends State<MapApp> {
     long: 4.420575,
     parkspaces: 30,
   );
+  Street marnixStraat = Street(
+    name: "Marnixstraat",
+    lat: 51.228052,
+    long: 4.420114,
+    parkspaces: 50,
+  );
 
   List<Street> streets = [];
 
@@ -82,6 +88,7 @@ class _MapAppState extends State<MapApp> {
       fuggerStraatBeneden,
       fuggerStraatNoord,
       korteDijkStraat,
+      marnixStraat
     ];
     super.initState();
   }
@@ -103,6 +110,7 @@ class _MapAppState extends State<MapApp> {
           zoom: 18.0,
           maxZoom: 18.0,
           minZoom: 18.0, // Set the zoom level of the map
+          
         ),
         children: [
           TileLayer(
@@ -193,9 +201,9 @@ List<Marker> _generateMarkers(BuildContext context, streets) {
           onTap: () {
             _showMarkerModal(context, street);
           },
-          child: const Icon(
+          child: Icon(
             Icons.location_on,
-            color: Colors.red,
+            color: Colors.red.withOpacity(0.8),
             size: 50.0,
           ),
         ),
