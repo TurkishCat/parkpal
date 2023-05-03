@@ -19,11 +19,11 @@ class MainApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-  return MaterialApp(
-    title: 'My App',
-    home: LoginScreen(),
-  );
-}
+    return MaterialApp(
+      title: 'My App',
+      home: MapApp(),
+    );
+  }
 }
 
 class MapApp extends StatefulWidget {
@@ -34,64 +34,67 @@ class MapApp extends StatefulWidget {
 }
 
 class _MapAppState extends State<MapApp> {
-  Street duboisStraat = Street(
-    name: "Duboisstraat",
-    lat: 51.229144,
-    long: 4.419320,
-    parkspaces: 12,
-  );
-  Street langeDijkStraatNoord = Street(
-    name: "Lange Dijkstraat PRKNOORD",
-    lat: 51.229429,
-    long: 4.420216,
-    parkspaces: 20,
-  );
-  Street langeDijkStraatBeneden = Street(
-    name: "Lange Dijkstraat Beneden",
-    lat: 51.228559,
-    long: 4.419395,
-    parkspaces: 30,
-  );
-  Street fuggerStraatNoord = Street(
-    name: "Fuggerstraat PRKNOORD",
-    lat: 51.229449,
-    long: 4.418714,
-    parkspaces: 20,
-  );
-  Street fuggerStraatBeneden = Street(
-    name: "Fuggerstraat Beneden",
-    lat: 51.228536,
-    long: 4.418703,
-    parkspaces: 35,
-  );
-  Street korteDijkStraat = Street(
-    name: "Korte Dijkstraat",
-    lat: 51.228734,
-    long: 4.420575,
-    parkspaces: 30,
-  );
-  Street marnixStraat = Street(
-    name: "Marnixstraat",
-    lat: 51.228052,
-    long: 4.420114,
-    parkspaces: 50,
-  );
-
-  List<Street> streets = [];
-
   final MapController mapController = MapController();
+  late LatLng _tappedLocation;
+  List<Marker> markers = [];
+  int _currentIndex = 0;
+
+  void _handleTap(LatLng latLng) {
+    setState(() {
+      _tappedLocation = latLng;
+    });
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          height: 200.0,
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                Text(
+                  "Do you want to park here?",
+                  style: TextStyle(
+                    fontSize: 20.0,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 20.0),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                    markers.add(
+                      Marker(
+                        point: latLng,
+                        builder: (context) => Icon(
+                          Icons.location_pin,
+                          color: Colors.red.withOpacity(0.8),
+                        ),
+                      ),
+                    );
+                  });
+                    Navigator.pop(context);
+                  },
+                  child: Text("Yes"),
+                ),
+                SizedBox(height: 10.0),
+                OutlinedButton(
+                  onPressed: () {
+                    // TODO: Handle "No" button pressed
+                    Navigator.pop(context);
+                  },
+                  child: Text("No"),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   @override
   void initState() {
-    streets = [
-      duboisStraat,
-      langeDijkStraatBeneden,
-      langeDijkStraatNoord,
-      fuggerStraatBeneden,
-      fuggerStraatNoord,
-      korteDijkStraat,
-      marnixStraat
-    ];
     super.initState();
   }
 
@@ -102,32 +105,19 @@ class _MapAppState extends State<MapApp> {
         title: const Text("ParkPal"),
         backgroundColor: Colors.red,
       ),
-      body: FlutterMap(
-        mapController: mapController,
-        options: MapOptions(
-          center: LatLng(
-            51.228939,
-            4.419669,
-          ), // Set the center of the map to San Francisco
-          zoom: 18.0,
-          maxZoom: 18.0,
-          minZoom: 18.0, // Set the zoom level of the map
-          
-        ),
-        children: [
-          TileLayer(
-            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            subdomains: const ['a', 'b', 'c'],
-          ),
-          MarkerLayer(markers: _generateMarkers(context, streets)),
-        ],
-      ),
+      body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         backgroundColor: Colors.red,
         selectedItemColor: Colors.red,
         unselectedItemColor: Colors.grey,
         showSelectedLabels: true,
         showUnselectedLabels: true,
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.map_rounded),
@@ -148,6 +138,37 @@ class _MapAppState extends State<MapApp> {
         ],
       ),
     );
+  }
+
+   Widget _buildBody() {
+    if (_currentIndex == 0) {
+      return FlutterMap(
+        mapController: mapController,
+        options: MapOptions(
+          center: LatLng(
+            51.228939,
+            4.419669,
+          ), // Set the center of the map to San Francisco
+          zoom: 18.0,
+          maxZoom: 18.0,
+          minZoom: 18.0, // Set the zoom level of the map
+          onTap: (tapPosition, latLng) => {
+            _handleTap(latLng),
+          },
+        ),
+        children: [
+          TileLayer(
+            urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            subdomains: const ['a', 'b', 'c'],
+          ),
+          MarkerLayer(markers: markers,)
+        ],
+      );
+    } else {
+      return Center(
+        child: Text('List View'),
+      );
+    }
   }
 }
 
@@ -188,29 +209,4 @@ void _showMarkerModal(BuildContext context, Street street) {
   );
 }
 
-List<Marker> _generateMarkers(BuildContext context, streets) {
-  List<Marker> markers = [];
-  for (Street street in streets) {
-    markers.add(
-      Marker(
-        width: 80.0,
-        height: 80.0,
-        point: LatLng(
-          street.lat,
-          street.long,
-        ),
-        builder: (ctx) => GestureDetector(
-          onTap: () {
-            _showMarkerModal(context, street);
-          },
-          child: Icon(
-            Icons.location_on,
-            color: Colors.red.withOpacity(0.8),
-            size: 50.0,
-          ),
-        ),
-      ),
-    );
-  }
-  return markers;
-}
+
