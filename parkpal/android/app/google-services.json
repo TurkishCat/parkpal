@@ -29,6 +29,13 @@
             {
               "client_id": "1039067180595-pnb7b3of4ghu02kvnidfraeisprgj1d4.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "1039067180595-rrgv1dgp1vch7glrakk448442j6egb5p.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.parkpal"
+              }
             }
           ]
         }
