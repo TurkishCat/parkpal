@@ -63,16 +63,16 @@ class _MapAppState extends State<MapApp> {
                 ElevatedButton(
                   onPressed: () {
                     setState(() {
-                    markers.add(
-                      Marker(
-                        point: latLng,
-                        builder: (context) => Icon(
-                          Icons.location_pin,
-                          color: Colors.red.withOpacity(0.8),
+                      markers.add(
+                        Marker(
+                          point: latLng,
+                          builder: (context) => Icon(
+                            Icons.location_pin,
+                            color: Colors.red.withOpacity(0.8),
+                          ),
                         ),
-                      ),
-                    );
-                  });
+                      );
+                    });
                     Navigator.pop(context);
                   },
                   child: Text("Yes"),
@@ -140,7 +140,70 @@ class _MapAppState extends State<MapApp> {
     );
   }
 
-   Widget _buildBody() {
+  Widget _buildBody() {
+    TextEditingController _licensePlateController = TextEditingController();
+    TextEditingController _carController = TextEditingController();
+
+    void _addCarModal(BuildContext context) {
+      showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          return SingleChildScrollView(
+            child: Container(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom),
+              child: Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Add a new car',
+                      style: TextStyle(
+                        fontSize: 18.0,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      controller: _licensePlateController,
+                      decoration: InputDecoration(
+                        hintText: 'License Plate',
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    TextField(
+                      controller: _carController,
+                      decoration: InputDecoration(
+                        hintText: 'Car',
+                      ),
+                    ),
+                    SizedBox(height: 16.0),
+                    ElevatedButton(
+                      onPressed: () {
+                        // Do something with the input data
+                        String licensePlate = _licensePlateController.text;
+                        String car = _carController.text;
+                        // ...
+                        Navigator.pop(context);
+                      },
+                      child: Text('Add'),
+                      style: ButtonStyle(
+                        backgroundColor: MaterialStateProperty.all<Color>(
+                          Colors.red,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
     if (_currentIndex == 0) {
       return FlutterMap(
         mapController: mapController,
@@ -161,8 +224,26 @@ class _MapAppState extends State<MapApp> {
             urlTemplate: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
             subdomains: const ['a', 'b', 'c'],
           ),
-          MarkerLayer(markers: markers,)
+          MarkerLayer(
+            markers: markers,
+          )
         ],
+      );
+    } else if (_currentIndex == 2) {
+      return Center(
+        child: Container(
+          child: ElevatedButton(
+            onPressed: () {
+              _addCarModal(context);
+            },
+            child: Text('Add a new car'),
+            style: ButtonStyle(
+              backgroundColor: MaterialStateProperty.all<Color>(
+                Colors.red,
+              ),
+            ),
+          ),
+        ),
       );
     } else {
       return Center(
@@ -208,5 +289,3 @@ void _showMarkerModal(BuildContext context, Street street) {
     },
   );
 }
-
-
