@@ -4,5 +4,5 @@ import 'login_screen.dart';
 
 final Map<String, WidgetBuilder> routes = {
   '/home': (BuildContext context) => const MapApp(),
-  '/profile': (BuildContext context) => const LoginScreen(),
+  '/login': (BuildContext context) => const LoginScreen(),
 };
