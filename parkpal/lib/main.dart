@@ -11,6 +11,7 @@ import 'package:http/http.dart' as http;
 import 'package:parkpal/firebase_options.dart';
 import 'classes/street.dart';
 import 'package:parkpal/login_screen.dart';
+import './routes.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,7 +29,8 @@ class MainApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'My App',
-      home: MapApp(),
+      initialRoute: '/',
+      routes: routes,
     );
   }
 }
