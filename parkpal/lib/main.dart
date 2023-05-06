@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:ui';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
@@ -9,9 +10,11 @@ import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
 import 'package:parkpal/firebase_options.dart';
-import 'classes/street.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import './firebaseinit.dart' as fbInit;
 import 'package:parkpal/login_screen.dart';
 import './routes.dart';
+import 'classes/user.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +22,7 @@ Future<void> main() async {
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
+  fbInit.initializeFirebase;
   runApp(MainApp());
 }
 
@@ -36,6 +40,7 @@ class MainApp extends StatelessWidget {
 }
 
 class MapApp extends StatefulWidget {
+  
   const MapApp({super.key});
 
   @override
@@ -61,7 +66,7 @@ class _MapAppState extends State<MapApp> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                Text(
+                const Text(
                   "Do you want to park here?",
                   style: TextStyle(
                     fontSize: 20.0,
@@ -190,11 +195,43 @@ class _MapAppState extends State<MapApp> {
                     ),
                     SizedBox(height: 16.0),
                     ElevatedButton(
-                      onPressed: () {
-                        // Do something with the input data
-                        String licensePlate = _licensePlateController.text;
-                        String car = _carController.text;
-                        // ...
+                      onPressed: () async {
+                        // Get the current user
+                        final User? user = FirebaseAuth.instance.currentUser;
+                        if (user == null) {
+                          // User is not signed in
+                          return;
+                        }
+
+                        // Create the new car object
+                        final Car car = Car(
+                          licensePlate: _licensePlateController.text,
+                          model: _carController.text,
+                        );
+
+                        // Add the new car object to the current user's cars list
+                        final DocumentReference<Map<String, dynamic>>
+                            userDocRef = FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(user.uid);
+                        final DocumentSnapshot<Map<String, dynamic>>
+                            userDocSnapshot = await userDocRef.get();
+                        final List<dynamic> carsData =
+                            userDocSnapshot.get('cars') ?? [];
+                        final List<Car> cars = carsData
+                            .map((data) => Car(
+                                licensePlate: data['licensePlate'] as String,
+                                model: data['model'] as String))
+                            .toList();
+                        cars.add(car);
+                        await userDocRef.update(
+                            {'cars': cars.map((car) => car.toData()).toList()});
+
+                        // Clear the input fields
+                        _licensePlateController.clear();
+                        _carController.clear();
+
+                        // Close the modal
                         Navigator.pop(context);
                       },
                       child: Text('Add'),
@@ -260,41 +297,4 @@ class _MapAppState extends State<MapApp> {
       );
     }
   }
-}
-
-void _showMarkerModal(BuildContext context, Street street) {
-  showModalBottomSheet(
-    context: context,
-    builder: (BuildContext context) {
-      return Container(
-        height: 200.0,
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                'Street Name: ${street.name}',
-                style: TextStyle(fontSize: 20.0),
-              ),
-              SizedBox(height: 10.0),
-              Text(
-                'Latitude: ${street.lat}',
-                style: TextStyle(fontSize: 20.0),
-              ),
-              SizedBox(height: 10.0),
-              Text(
-                'Longitude: ${street.long}',
-                style: TextStyle(fontSize: 20.0),
-              ),
-              SizedBox(height: 10.0),
-              Text(
-                'Number of Parking Spaces: ${street.parkspaces}',
-                style: TextStyle(fontSize: 20.0),
-              ),
-            ],
-          ),
-        ),
-      );
-    },
-  );
 }

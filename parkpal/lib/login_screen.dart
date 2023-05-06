@@ -1,5 +1,8 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+
+import 'classes/user.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -99,6 +102,17 @@ class _LoginPageState extends State<LoginPage> {
         email: _emailControllerRegistering.text,
         password: _passwordControllerRegistering.text,
       );
+      final CollectionReference _userCollection =
+      FirebaseFirestore.instance.collection('users');
+
+      AppUser appUser = AppUser(
+        uid: userCredential.user!.uid,
+        email: _emailControllerRegistering.text,
+        parkSpots: [],
+        cars: [],
+      );
+
+      await _userCollection.doc(userCredential.user!.uid).set(appUser.toData());
       // Navigate to the home page of your app
     } on FirebaseAuthException catch (e) {
       if (e.code == 'weak-password') {

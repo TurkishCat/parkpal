@@ -49,6 +49,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1039067180595',
     projectId: 'parkpal-f1f48',
     authDomain: 'parkpal-f1f48.firebaseapp.com',
+    databaseURL: 'https://parkpal-f1f48-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'parkpal-f1f48.appspot.com',
     measurementId: 'G-VHJESFJ0YZ',
   );
@@ -58,6 +59,7 @@ class DefaultFirebaseOptions {
     appId: '1:1039067180595:android:8f6da0e2cb6aa36891bd46',
     messagingSenderId: '1039067180595',
     projectId: 'parkpal-f1f48',
+    databaseURL: 'https://parkpal-f1f48-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'parkpal-f1f48.appspot.com',
   );
 
@@ -66,6 +68,7 @@ class DefaultFirebaseOptions {
     appId: '1:1039067180595:ios:c4b4249ffc9b4f5191bd46',
     messagingSenderId: '1039067180595',
     projectId: 'parkpal-f1f48',
+    databaseURL: 'https://parkpal-f1f48-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'parkpal-f1f48.appspot.com',
     iosClientId: '1039067180595-rrgv1dgp1vch7glrakk448442j6egb5p.apps.googleusercontent.com',
     iosBundleId: 'com.example.parkpal',
@@ -76,6 +79,7 @@ class DefaultFirebaseOptions {
     appId: '1:1039067180595:ios:c4b4249ffc9b4f5191bd46',
     messagingSenderId: '1039067180595',
     projectId: 'parkpal-f1f48',
+    databaseURL: 'https://parkpal-f1f48-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'parkpal-f1f48.appspot.com',
     iosClientId: '1039067180595-rrgv1dgp1vch7glrakk448442j6egb5p.apps.googleusercontent.com',
     iosBundleId: 'com.example.parkpal',
