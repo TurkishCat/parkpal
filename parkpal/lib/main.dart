@@ -52,11 +52,11 @@ class _MapAppState extends State<MapApp> {
   List<Marker> markers = [];
   int _currentIndex = 0;
 
-  getUser(String type) async {
+  getUser(String type, String uid) async {
     final User? user = FirebaseAuth.instance.currentUser;
 
     final DocumentReference<Map<String, dynamic>> userDocRef =
-        FirebaseFirestore.instance.collection('users').doc(user!.uid);
+        FirebaseFirestore.instance.collection('users').doc(uid);
     final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
         await userDocRef.get();
     if (type == 'snapshot') {
@@ -67,27 +67,42 @@ class _MapAppState extends State<MapApp> {
     }
   }
 
-  void _handleTap(LatLng latLng) {
-    final currentUser = getUser('snapshot');
+  void _handleTap(LatLng latLng) async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    final DocumentReference<Map<String, dynamic>> userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(user!.uid);
+    final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
+        await userDocRef.get();
 
     final TextEditingController startTimeController = TextEditingController();
     final TextEditingController endTimeController = TextEditingController();
 
+    // ignore: use_build_context_synchronously
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        final List<DropdownMenuItem<Car>> dropdownItems =
-            currentUser.get().map((car) {
-          return DropdownMenuItem<Car>(
-            value: car,
-            child: Text(car.licensePlate),
+        final List<DropdownMenuItem<Car>> dropdownItems = [];
+        if (userDocSnapshot.exists) {
+          final List<dynamic> carsData = userDocSnapshot.get('cars') ?? [];
+          final List<Car> cars = carsData
+              .map((data) => Car(
+                    model: data['model'] as String,
+                    licensePlate: data['licensePlate'] as String,
+                  ))
+              .toList();
+          dropdownItems.addAll(
+            cars.map((car) {
+              return DropdownMenuItem<Car>(
+                value: car,
+                child: Text(car.licensePlate),
+              );
+            }),
           );
-        }).toList();
+        }
 
-        return Container(
-          height: 300.0,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
+        return Flexible(
+          child: Container(
+            padding: EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -141,37 +156,33 @@ class _MapAppState extends State<MapApp> {
                         endTime: endTimeController.text,
                         car: selectedCar,
                       );
-                      setState(() async {
-                        final DocumentReference<Map<String, dynamic>>
-                            userDocRef = FirebaseFirestore.instance
-                                .collection('users')
-                                .doc(user.uid);
-                        final DocumentSnapshot<Map<String, dynamic>>
-                            userDocSnapshot = await userDocRef.get();
-                        final List<dynamic> parkSpotsData =
-                            getUser('snapshot').get('parkingSpots') ?? [];
-                        final List<ParkSpot> parkSpots = parkSpotsData
-                            .map((data) => ParkSpot(
-                                  latLng: LatLng(
-                                      data['latLng'][0], data['latLng'][1]),
-                                  startTime: data['startTime'] as String,
-                                  endTime: data['endTime'] as String,
-                                  car: Car(
-                                    model: data['car']['model'] as String,
-                                    licensePlate:
-                                        data['car']['licensePlate'] as String,
-                                  ),
-                                ))
-                            .toList();
-                        parkSpots.add(parkSpot);
-                        await userDocRef.update({
-                          'parkSpots':
-                              parkSpots.map((spot) => spot.toData()).toList()
-                        });
+                      final DocumentSnapshot<Map<String, dynamic>>
+                          userDocSnapshot = await userDocRef.get();
+                      final List<dynamic> parkSpotsData =
+                          userDocSnapshot.get('parkSpots') ?? [];
+                      final List<ParkSpot> parkSpots = parkSpotsData
+                          .map((data) => ParkSpot(
+                                latLng: LatLng(
+                                  data['latLng'][0],
+                                  data['latLng'][1],
+                                ),
+                                startTime: data['startTime'] as String,
+                                endTime: data['endTime'] as String,
+                                car: Car(
+                                  model: data['car']['model'] as String,
+                                  licensePlate:
+                                      data['car']['licensePlate'] as String,
+                                ),
+                              ))
+                          .toList();
+                      parkSpots.add(parkSpot);
+                      await userDocRef.update({
+                        'parkSpots':
+                            parkSpots.map((spot) => spot.toData()).toList(),
                       });
-                    }
 
-                    Navigator.pop(context);
+                      Navigator.pop(context);
+                    }
                   },
                   child: const Text("Yes"),
                 ),
