@@ -40,7 +40,6 @@ class MainApp extends StatelessWidget {
 }
 
 class MapApp extends StatefulWidget {
-  
   const MapApp({super.key});
 
   @override
@@ -276,20 +275,83 @@ class _MapAppState extends State<MapApp> {
         ],
       );
     } else if (_currentIndex == 2) {
-      return Center(
-        child: Container(
-          child: ElevatedButton(
-            onPressed: () {
-              _addCarModal(context);
-            },
-            child: Text('Add a new car'),
-            style: ButtonStyle(
-              backgroundColor: MaterialStateProperty.all<Color>(
-                Colors.red,
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: StreamBuilder<DocumentSnapshot>(
+              stream: FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(FirebaseAuth.instance.currentUser!.uid)
+                  .snapshots(),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  return Center(child: CircularProgressIndicator());
+                }
+
+                final carsData = snapshot.data!.get('cars') ?? [];
+                final List<dynamic> cars = carsData
+                    .map((data) => Car(
+                        licensePlate: data['licensePlate'] as String,
+                        model: data['model'] as String))
+                    .toList();
+
+                if (cars.isEmpty) {
+                  return Center(child: Text('You have no cars.'));
+                }
+
+                return ListView.builder(
+                  itemCount: cars.length,
+                  itemBuilder: (context, index) {
+                    final car = cars[index];
+                    return Card(
+                      child: ListTile(
+                        title: Text(car.licensePlate),
+                        subtitle: Text(car.model),
+                        trailing: IconButton(
+                          icon: Icon(Icons.delete),
+                          onPressed: () async {
+                            // Delete car from Firebase
+                            await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(FirebaseAuth.instance.currentUser!.uid)
+                                .update({
+                              'cars': FieldValue.arrayRemove([
+                                {
+                                  'licensePlate': car.licensePlate,
+                                  'model': car.model
+                                }
+                              ])
+                            });
+
+                            // Remove car from the list
+                            setState(() {
+                              cars.removeAt(index);
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: ElevatedButton(
+              onPressed: () {
+                _addCarModal(context);
+              },
+              child: Text('Add a new car'),
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.all<Color>(
+                  Colors.red,
+                ),
               ),
             ),
           ),
-        ),
+        ],
       );
     } else {
       return Center(
