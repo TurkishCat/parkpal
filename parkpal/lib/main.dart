@@ -9,12 +9,12 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:http/http.dart' as http;
-import 'package:parkpal/firebase_options.dart';
+import 'package:parkpal/backend/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import './firebaseinit.dart' as fbInit;
-import 'package:parkpal/login_screen.dart';
-import './routes.dart';
-import 'classes/user.dart';
+import 'backend/firebaseinit.dart' as fbInit;
+import 'package:parkpal/login/login_screen.dart';
+import 'routes/routes.dart';
+import 'login/user.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
