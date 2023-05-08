@@ -397,6 +397,29 @@ class _MapAppState extends State<MapApp> {
     }
 
     if (_currentIndex == 0) {
+      List<Marker> markers = [];
+
+      FirebaseFirestore.instance
+          .collection('users')
+          .get()
+          .then((querySnapshot) {
+        querySnapshot.docs.forEach((doc) {
+          AppUser user = AppUser.fromSnapshot(doc);
+          print(doc.data()); // Add this line to see the retrieved data
+
+          user.parkSpots.forEach((parkSpot) {
+            ParkSpotMarker marker = ParkSpotMarker(
+              point: parkSpot.latLng,
+              builder: (BuildContext context) => Icon(Icons.location_on),
+              parkSpot: parkSpot,
+
+            );
+
+            markers.add(marker);
+          });
+        });
+      });
+
       return FlutterMap(
         mapController: mapController,
         options: MapOptions(
@@ -417,8 +440,34 @@ class _MapAppState extends State<MapApp> {
             subdomains: const ['a', 'b', 'c'],
           ),
           MarkerLayer(
-            markers: markers,
-          )
+            
+            markers: markers.map((marker) {
+              final parkSpot = (marker as ParkSpotMarker).parkSpot;
+              return ParkSpotMarker(
+                point: parkSpot.latLng,
+                
+                builder: (context) => GestureDetector(
+                  onTap: () => showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('ParkSpot Information'),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Start Time: ${parkSpot.startTime}'),
+                          Text('End Time: ${parkSpot.endTime}'),
+                          Text('License Plate: ${parkSpot.car.licensePlate}'),
+                        ],
+                      ),
+                    ),
+                  ),
+                  child: Icon(Icons.local_parking),
+                ),
+                parkSpot: parkSpot,
+              );
+            }).toList(),
+          ),
         ],
       );
     } else if (_currentIndex == 2) {
