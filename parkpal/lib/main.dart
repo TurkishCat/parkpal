@@ -74,8 +74,10 @@ class _MapAppState extends State<MapApp> {
     final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
         await userDocRef.get();
 
-    final TextEditingController startTimeController = TextEditingController();
-    final TextEditingController endTimeController = TextEditingController();
+    final TextEditingController startHourController = TextEditingController();
+    final TextEditingController startMinuteController = TextEditingController();
+    final TextEditingController endHourController = TextEditingController();
+    final TextEditingController endMinuteController = TextEditingController();
 
     // ignore: use_build_context_synchronously
     showModalBottomSheet(
@@ -114,46 +116,91 @@ class _MapAppState extends State<MapApp> {
                   ),
                 ),
                 const SizedBox(height: 20.0),
-                TextField(
-                  controller: startTimeController,
-                  decoration: const InputDecoration(
-                    labelText: "Start time",
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: TextField(
+                        controller: startHourController,
+                        decoration: const InputDecoration(
+                          labelText: "Start hour",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10.0),
+                    Flexible(
+                      child: TextField(
+                        controller: startMinuteController,
+                        decoration: const InputDecoration(
+                          labelText: "Start minute",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 10.0),
-                TextField(
-                  controller: endTimeController,
-                  decoration: const InputDecoration(
-                    labelText: "End time",
-                    border: OutlineInputBorder(),
-                  ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Flexible(
+                      child: TextField(
+                        controller: endHourController,
+                        decoration: const InputDecoration(
+                          labelText: "End hour",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10.0),
+                    Flexible(
+                      child: TextField(
+                        controller: endMinuteController,
+                        decoration: const InputDecoration(
+                          labelText: "End minute",
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20.0),
-                DropdownButtonFormField<Car>(
-                  value: dropdownItems.isNotEmpty
-                      ? dropdownItems.first.value
-                      : null,
-                  items: dropdownItems,
-                  decoration: const InputDecoration(
-                    labelText: "Select car",
-                    border: OutlineInputBorder(),
-                  ),
-                  onChanged: (value) {},
+                Row(
+                  children: [
+                    Flexible(
+                      child: DropdownButtonFormField<Car>(
+                        value: dropdownItems.isNotEmpty
+                            ? dropdownItems.first.value
+                            : null,
+                        items: dropdownItems,
+                        decoration: const InputDecoration(
+                          labelText: "Select car",
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (value) {},
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 20.0),
                 ElevatedButton(
                   onPressed: () async {
                     final Car? selectedCar = dropdownItems.isNotEmpty
                         ? dropdownItems.first.value
                         : null;
                     if (selectedCar != null &&
-                        startTimeController.text.isNotEmpty &&
-                        endTimeController.text.isNotEmpty) {
+                        startHourController.text.isNotEmpty &&
+                        startMinuteController.text.isNotEmpty &&
+                        endHourController.text.isNotEmpty &&
+                        endMinuteController.text.isNotEmpty) {
+                      final String startTime =
+                          "${startHourController.text}:${startMinuteController.text}";
+                      final String endTime =
+                          "${endHourController.text}:${endMinuteController.text}";
                       final ParkSpot parkSpot = ParkSpot(
                         latLng: latLng,
-                        startTime: startTimeController.text,
-                        endTime: endTimeController.text,
+                        startTime: startTime,
+                        endTime: endTime,
                         car: selectedCar,
                       );
                       final DocumentSnapshot<Map<String, dynamic>>
@@ -184,14 +231,19 @@ class _MapAppState extends State<MapApp> {
                       Navigator.pop(context);
                     }
                   },
-                  child: const Text("Yes"),
+                  child: const Text("Start your parking session."),
+                  style: ButtonStyle(
+                    backgroundColor: MaterialStateProperty.all<Color>(
+                      Colors.red,
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 10.0),
                 OutlinedButton(
                   onPressed: () {
                     Navigator.pop(context);
                   },
-                  child: const Text("No"),
+                  child: const Text("Cancel"),
                 ),
               ],
             ),
