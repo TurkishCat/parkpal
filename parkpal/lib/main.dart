@@ -52,16 +52,57 @@ class _MapAppState extends State<MapApp> {
   List<Marker> markers = [];
   int _currentIndex = 0;
 
-  void _handleTap(LatLng latLng) {
-    setState(() {
-      _tappedLocation = latLng;
-    });
+  getUser(String type, String uid) async {
+    final User? user = FirebaseAuth.instance.currentUser;
+
+    final DocumentReference<Map<String, dynamic>> userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(uid);
+    final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
+        await userDocRef.get();
+    if (type == 'snapshot') {
+      return userDocSnapshot;
+    }
+    if (type == 'ref') {
+      return userDocRef;
+    }
+  }
+
+  void _handleTap(LatLng latLng) async {
+    final User? user = FirebaseAuth.instance.currentUser;
+    final DocumentReference<Map<String, dynamic>> userDocRef =
+        FirebaseFirestore.instance.collection('users').doc(user!.uid);
+    final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
+        await userDocRef.get();
+
+    final TextEditingController startTimeController = TextEditingController();
+    final TextEditingController endTimeController = TextEditingController();
+
+    // ignore: use_build_context_synchronously
     showModalBottomSheet(
       context: context,
       builder: (BuildContext context) {
-        return Container(
-          height: 200.0,
-          child: Center(
+        final List<DropdownMenuItem<Car>> dropdownItems = [];
+        if (userDocSnapshot.exists) {
+          final List<dynamic> carsData = userDocSnapshot.get('cars') ?? [];
+          final List<Car> cars = carsData
+              .map((data) => Car(
+                    model: data['model'] as String,
+                    licensePlate: data['licensePlate'] as String,
+                  ))
+              .toList();
+          dropdownItems.addAll(
+            cars.map((car) {
+              return DropdownMenuItem<Car>(
+                value: car,
+                child: Text(car.licensePlate),
+              );
+            }),
+          );
+        }
+
+        return Flexible(
+          child: Container(
+            padding: EdgeInsets.all(16.0),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
@@ -72,31 +113,85 @@ class _MapAppState extends State<MapApp> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 20.0),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      markers.add(
-                        Marker(
-                          point: latLng,
-                          builder: (context) => Icon(
-                            Icons.location_pin,
-                            color: Colors.red.withOpacity(0.8),
-                          ),
-                        ),
-                      );
-                    });
-                    Navigator.pop(context);
-                  },
-                  child: Text("Yes"),
+                const SizedBox(height: 20.0),
+                TextField(
+                  controller: startTimeController,
+                  decoration: const InputDecoration(
+                    labelText: "Start time",
+                    border: OutlineInputBorder(),
+                  ),
                 ),
-                SizedBox(height: 10.0),
+                const SizedBox(height: 10.0),
+                TextField(
+                  controller: endTimeController,
+                  decoration: const InputDecoration(
+                    labelText: "End time",
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 20.0),
+                DropdownButtonFormField<Car>(
+                  value: dropdownItems.isNotEmpty
+                      ? dropdownItems.first.value
+                      : null,
+                  items: dropdownItems,
+                  decoration: const InputDecoration(
+                    labelText: "Select car",
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {},
+                ),
+                const SizedBox(height: 20.0),
+                ElevatedButton(
+                  onPressed: () async {
+                    final Car? selectedCar = dropdownItems.isNotEmpty
+                        ? dropdownItems.first.value
+                        : null;
+                    if (selectedCar != null &&
+                        startTimeController.text.isNotEmpty &&
+                        endTimeController.text.isNotEmpty) {
+                      final ParkSpot parkSpot = ParkSpot(
+                        latLng: latLng,
+                        startTime: startTimeController.text,
+                        endTime: endTimeController.text,
+                        car: selectedCar,
+                      );
+                      final DocumentSnapshot<Map<String, dynamic>>
+                          userDocSnapshot = await userDocRef.get();
+                      final List<dynamic> parkSpotsData =
+                          userDocSnapshot.get('parkSpots') ?? [];
+                      final List<ParkSpot> parkSpots = parkSpotsData
+                          .map((data) => ParkSpot(
+                                latLng: LatLng(
+                                  data['latLng'][0],
+                                  data['latLng'][1],
+                                ),
+                                startTime: data['startTime'] as String,
+                                endTime: data['endTime'] as String,
+                                car: Car(
+                                  model: data['car']['model'] as String,
+                                  licensePlate:
+                                      data['car']['licensePlate'] as String,
+                                ),
+                              ))
+                          .toList();
+                      parkSpots.add(parkSpot);
+                      await userDocRef.update({
+                        'parkSpots':
+                            parkSpots.map((spot) => spot.toData()).toList(),
+                      });
+
+                      Navigator.pop(context);
+                    }
+                  },
+                  child: const Text("Yes"),
+                ),
+                const SizedBox(height: 10.0),
                 OutlinedButton(
                   onPressed: () {
-                    // TODO: Handle "No" button pressed
                     Navigator.pop(context);
                   },
-                  child: Text("No"),
+                  child: const Text("No"),
                 ),
               ],
             ),
