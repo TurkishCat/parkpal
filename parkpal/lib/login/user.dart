@@ -3,7 +3,6 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-
 class AppUser {
   final String uid;
   final String email;
@@ -34,17 +33,21 @@ class AppUser {
     final parkSpotsData = data['parkSpots'] as List<dynamic>;
     final carsData = data['cars'] as List<dynamic>;
 
-    final parkSpots = parkSpotsData
-        .map((spotData) => ParkSpot(
-              latLng: spotData['latLng'] as LatLng,
-              startTime: spotData['startTime'] as String,
-              endTime: spotData['endTime'] as String,
-              car: Car(
-                model: spotData['car']['model'] as String,
-                licensePlate: spotData['car']['licensePlate'] as String,
-              ),
-            ))
-        .toList();
+    final parkSpots = parkSpotsData.map((spotData) {
+      final latLngData = spotData['latLng'] as List<dynamic>;
+      final lat = latLngData[0] as double;
+      final lng = latLngData[1] as double;
+
+      return ParkSpot(
+        latLng: LatLng(lat, lng),
+        startTime: spotData['startTime'] as String,
+        endTime: spotData['endTime'] as String,
+        car: Car(
+          model: spotData['car']['model'] as String,
+          licensePlate: spotData['car']['licensePlate'] as String,
+        ),
+      );
+    }).toList();
 
     final cars = carsData
         .map((carData) => Car(
@@ -69,7 +72,7 @@ class Car {
   Car({required this.model, required this.licensePlate});
 
   Map<String, dynamic> toData() {
-    return {    
+    return {
       'model': model,
       'licensePlate': licensePlate,
     };
@@ -83,7 +86,6 @@ class ParkSpot {
   final Car car;
 
   ParkSpot({
-    
     required this.latLng,
     required this.startTime,
     required this.endTime,
@@ -95,12 +97,17 @@ class ParkSpot {
       'latLng': [latLng.latitude, latLng.longitude],
       'startTime': startTime,
       'endTime': endTime,
-      'car': {
-        'model':car.model,
-        'licensePlate':car.licensePlate
-      },
+      'car': {'model': car.model, 'licensePlate': car.licensePlate},
     };
   }
 }
 
-  
+class ParkSpotMarker extends Marker {
+  final ParkSpot parkSpot;
+
+  ParkSpotMarker({
+    required this.parkSpot,
+    required LatLng point,
+    required Widget Function(BuildContext) builder,
+  }) : super(point: point, builder: builder);
+}
