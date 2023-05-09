@@ -15,6 +15,7 @@ import 'backend/firebaseinit.dart' as fbInit;
 import 'package:parkpal/login/login_screen.dart';
 import 'routes/routes.dart';
 import 'login/user.dart';
+import 'package:easy_debounce/easy_debounce.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,7 +50,7 @@ class MapApp extends StatefulWidget {
 class _MapAppState extends State<MapApp> {
   final MapController mapController = MapController();
   late LatLng _tappedLocation;
-  List<Marker> markers = [];
+  List<ParkSpotMarker> markers = [];
   int _currentIndex = 0;
 
   getUser(String type, String uid) async {
@@ -397,28 +398,37 @@ class _MapAppState extends State<MapApp> {
     }
 
     if (_currentIndex == 0) {
-      List<Marker> markers = [];
+      EasyDebounce.debounce(
+        'my-debouncer',
+        const Duration(milliseconds: 1000),
+        () {
+          FirebaseFirestore.instance.collection('users').get().then(
+            (querySnapshot) {
+              querySnapshot.docs.forEach(
+                (doc) {
+                  AppUser user = AppUser.fromSnapshot(doc);
+                  
 
-      FirebaseFirestore.instance
-          .collection('users')
-          .get()
-          .then((querySnapshot) {
-        querySnapshot.docs.forEach((doc) {
-          AppUser user = AppUser.fromSnapshot(doc);
-          print(doc.data()); // Add this line to see the retrieved data
+                  user.parkSpots.forEach(
+                    (parkSpot) {
+                      ParkSpotMarker marker = ParkSpotMarker(
+                        point: parkSpot.latLng,
+                        builder: (BuildContext context) =>
+                            Icon(Icons.location_on),
+                        parkSpot: parkSpot,
+                      );
 
-          user.parkSpots.forEach((parkSpot) {
-            ParkSpotMarker marker = ParkSpotMarker(
-              point: parkSpot.latLng,
-              builder: (BuildContext context) => Icon(Icons.location_on),
-              parkSpot: parkSpot,
-
-            );
-
-            markers.add(marker);
-          });
-        });
-      });
+                      setState(() {
+                        markers.add(marker);
+                      });
+                    },
+                  );
+                },
+              );
+            },
+          );
+        },
+      );
 
       return FlutterMap(
         mapController: mapController,
@@ -440,17 +450,15 @@ class _MapAppState extends State<MapApp> {
             subdomains: const ['a', 'b', 'c'],
           ),
           MarkerLayer(
-            
             markers: markers.map((marker) {
               final parkSpot = (marker as ParkSpotMarker).parkSpot;
               return ParkSpotMarker(
                 point: parkSpot.latLng,
-                
                 builder: (context) => GestureDetector(
                   onTap: () => showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: Text('ParkSpot Information'),
+                      title: Text('Currently Parked Car Info'),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -462,7 +470,9 @@ class _MapAppState extends State<MapApp> {
                       ),
                     ),
                   ),
-                  child: Icon(Icons.local_parking),
+                  child: const Icon(
+                    Icons.location_on,
+                  ),
                 ),
                 parkSpot: parkSpot,
               );
