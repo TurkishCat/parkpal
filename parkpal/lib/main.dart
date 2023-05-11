@@ -50,8 +50,49 @@ class MapApp extends StatefulWidget {
 class _MapAppState extends State<MapApp> {
   final MapController mapController = MapController();
   late LatLng _tappedLocation;
-  List<ParkSpotMarker> markers = [];
   int _currentIndex = 0;
+  List<ParkSpotMarker> markers = [];
+  List<LatLng> _existingMarkerPositions = [];
+
+  void listenForMarkerUpdates() {
+    EasyDebounce.debounce(
+      'my-debouncer',
+      const Duration(milliseconds: 1000),
+      () {
+        FirebaseFirestore.instance.collection('users').get().then(
+          (querySnapshot) {
+            List<ParkSpotMarker> markersToAdd = [];
+            querySnapshot.docs.forEach(
+              (doc) {
+                AppUser user = AppUser.fromSnapshot(doc);
+                // print(doc.data()); // Add this line to see the retrieved data
+
+                user.parkSpots.forEach(
+                  (parkSpot) {
+                    if (!_existingMarkerPositions.contains(parkSpot.latLng)) {
+                      ParkSpotMarker marker = ParkSpotMarker(
+                        point: parkSpot.latLng,
+                        builder: (BuildContext context) => const Icon(
+                          Icons.location_on,
+                        ),
+                        parkSpot: parkSpot,
+                      );
+                      markersToAdd.add(marker);
+                      _existingMarkerPositions.add(parkSpot.latLng);
+                    }
+                  },
+                );
+              },
+            );
+
+            setState(() {
+              markers.addAll(markersToAdd);
+            });
+          },
+        );
+      },
+    );
+  }
 
   getUser(String type, String uid) async {
     final User? user = FirebaseAuth.instance.currentUser;
@@ -257,6 +298,7 @@ class _MapAppState extends State<MapApp> {
   @override
   void initState() {
     super.initState();
+    
   }
 
   @override
@@ -398,38 +440,7 @@ class _MapAppState extends State<MapApp> {
     }
 
     if (_currentIndex == 0) {
-      EasyDebounce.debounce(
-        'my-debouncer',
-        const Duration(milliseconds: 1000),
-        () {
-          FirebaseFirestore.instance.collection('users').get().then(
-            (querySnapshot) {
-              querySnapshot.docs.forEach(
-                (doc) {
-                  AppUser user = AppUser.fromSnapshot(doc);
-                  print(doc.data()); // Add this line to see the retrieved data
-
-                  user.parkSpots.forEach(
-                    (parkSpot) {
-                      ParkSpotMarker marker = ParkSpotMarker(
-                        point: parkSpot.latLng,
-                        builder: (BuildContext context) =>
-                            Icon(Icons.location_on),
-                        parkSpot: parkSpot,
-                      );
-
-                      setState(() {
-                        markers.add(marker);
-                      });
-                    },
-                  );
-                },
-              );
-            },
-          );
-        },
-      );
-
+      listenForMarkerUpdates();
       return FlutterMap(
         mapController: mapController,
         options: MapOptions(
@@ -470,8 +481,9 @@ class _MapAppState extends State<MapApp> {
                       ),
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.location_on,
+                    color: Colors.red.withOpacity(0.6),
                   ),
                 ),
                 parkSpot: parkSpot,
