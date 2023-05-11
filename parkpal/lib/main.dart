@@ -407,7 +407,7 @@ class _MapAppState extends State<MapApp> {
               querySnapshot.docs.forEach(
                 (doc) {
                   AppUser user = AppUser.fromSnapshot(doc);
-                  
+                  print(doc.data()); // Add this line to see the retrieved data
 
                   user.parkSpots.forEach(
                     (parkSpot) {
