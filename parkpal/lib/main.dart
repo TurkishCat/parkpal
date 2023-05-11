@@ -51,6 +51,7 @@ class _MapAppState extends State<MapApp> {
   final MapController mapController = MapController();
   late LatLng _tappedLocation;
   List<ParkSpotMarker> markers = [];
+  Set<LatLng> _existingMarkerPositions = Set<LatLng>();
   int _currentIndex = 0;
 
   getUser(String type, String uid) async {
@@ -398,6 +399,7 @@ class _MapAppState extends State<MapApp> {
     }
 
     if (_currentIndex == 0) {
+      List<ParkSpotMarker> markersToAdd = [];
       EasyDebounce.debounce(
         'my-debouncer',
         const Duration(milliseconds: 1000),
@@ -411,16 +413,18 @@ class _MapAppState extends State<MapApp> {
 
                   user.parkSpots.forEach(
                     (parkSpot) {
-                      ParkSpotMarker marker = ParkSpotMarker(
-                        point: parkSpot.latLng,
-                        builder: (BuildContext context) =>
-                            Icon(Icons.location_on),
-                        parkSpot: parkSpot,
-                      );
-
-                      setState(() {
-                        markers.add(marker);
-                      });
+                      if (!_existingMarkerPositions.contains(parkSpot.latLng)) {
+                        ParkSpotMarker marker = ParkSpotMarker(
+                          point: parkSpot.latLng,
+                          builder: (BuildContext context) => const Icon(
+                            Icons.location_on,                        
+                          ),
+                          parkSpot: parkSpot,
+                        );
+                        setState(() {
+                          markers.add(marker);
+                        });
+                      }
                     },
                   );
                 },
@@ -472,6 +476,8 @@ class _MapAppState extends State<MapApp> {
                   ),
                   child: const Icon(
                     Icons.location_on,
+                    color: Colors.red.withOpacity(0.8),
+                    
                   ),
                 ),
                 parkSpot: parkSpot,
