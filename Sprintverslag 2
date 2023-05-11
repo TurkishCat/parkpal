@@ -1,0 +1,34 @@
+Sprint Verslag - Mobiele Parkingapp Project
+Datum: 10-05-2023
+Tijdens de afgelopen week hebben Emirhan en ik gewerkt aan ons Flutterproject om een mobiele parkingapp te ontwikkelen. 
+Hieronder vind je een overzicht van de taken die we hebben voltooid:
+
+Firebase opgezet:
+We hebben Firebase geïmplementeerd in ons project. Hierdoor kunnen we gebruikmaken van  
+functionaliteiten van Firebase zoals  gebruikersverificatie.
+
+Collections toegevoegd:
+We hebben de benodigde collecties aangemaakt in Firebase om de gegevens van de app op te slaan, zoals gebruikersinformatie, 
+autogegevens en parkeersessies.
+
+Autos toevoegen:
+We hebben de functionaliteit toegevoegd waarmee gebruikers hun auto kunnen toevoegen aan de app. Ze kunnen het kenteken en het automodel invoeren, 
+en deze gegevens worden opgeslagen in de Firebase-database.
+
+Parkeerplek kiezen en start/eindtijd invoeren:
+We hebben ervoor gezorgd dat gebruikers op de kaart een parkeerplek kunnen selecteren en de start- en eindtijd van hun parkeersessie kunnen invoeren. 
+Deze informatie wordt ook opgeslagen in de Firebase-database.
+
+Ophalen van parkeersessies bij het opstarten:
+Telkens wanneer de kaart wordt geladen, halen we alle parkeersessies op van alle gebruikers uit Firebase. 
+Op deze manier kunnen we de huidige parkeersessies weergeven en de kaart dienovereenkomstig bijwerken.
+
+Login-functionaliteit:
+We hebben de inlogfunctionaliteit toegevoegd, waarmee gebruikers kunnen inloggen op de app met hun geregistreerde accountgegevens. 
+Dit stelt hen in staat om toegang te krijgen tot persoonlijke gegevens en functionaliteiten.
+We hebben het grootste deel van de taken gezamenlijk uitgevoerd en zijn gedurende de week meerdere keren bijeengekomen op school om samen te werken.
+We hebben echter niet samen gewerkt op zondag.
+
+
+Marouane Mairouche 
+Emirhan Sahin
