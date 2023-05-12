@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -52,7 +54,7 @@ class _MapAppState extends State<MapApp> {
   late LatLng _tappedLocation;
   int _currentIndex = 0;
   List<ParkSpotMarker> markers = [];
-  List<LatLng> _existingMarkerPositions = [];
+  Set<LatLng> existingMarkerPositions = {};
 
   void listenForMarkerUpdates() {
     EasyDebounce.debounce(
@@ -62,70 +64,52 @@ class _MapAppState extends State<MapApp> {
         FirebaseFirestore.instance.collection('users').get().then(
           (querySnapshot) {
             List<ParkSpotMarker> markersToAdd = [];
-            List<ParkSpot> expiredSpots = [];
+            List<ParkSpotMarker> updatedMarkers =
+                List.from(markers); // Create a copy of the existing markers
 
             querySnapshot.docs.forEach(
               (doc) {
                 AppUser user = AppUser.fromSnapshot(doc);
-                // print(doc.data()); // Add this line to see the retrieved data
 
                 user.parkSpots.forEach(
                   (parkSpot) {
-                    if (!_existingMarkerPositions.contains(parkSpot.latLng)) {
-                      DateTime currentTime = DateTime.now();
-                      List<String> endTimeParts = parkSpot.endTime.split(':');
-                      DateTime endTime = DateTime(
-                        DateTime.now().year,
-                        DateTime.now().month,
-                        DateTime.now().day,
-                        int.parse(endTimeParts[0]),
-                        int.parse(endTimeParts[1]),
-                        0,
+                    DateTime currentTime = DateTime.now();
+                    List<String> endTimeParts = parkSpot.endTime.split(':');
+                    DateTime endTime = DateTime(
+                      DateTime.now().year,
+                      DateTime.now().month,
+                      DateTime.now().day,
+                      int.parse(endTimeParts[0]),
+                      int.parse(endTimeParts[1]),
+                      00,
+                      00,
+                      00,
+                    );
+                    
+                    if (currentTime.isAfter(endTime)) {
+                      existingMarkerPositions.remove(parkSpot.latLng);
+                      markers.removeWhere((marker) =>
+                          marker.parkSpot == parkSpot);
+                    } else if (!existingMarkerPositions
+                        .contains(parkSpot.latLng)) {
+                      ParkSpotMarker marker = ParkSpotMarker(
+                        point: parkSpot.latLng,
+                        builder: (BuildContext context) => const Icon(
+                          Icons.location_on,
+                        ),
+                        parkSpot: parkSpot,
                       );
-
-                      if (currentTime.isAfter(endTime)) {
-                        expiredSpots.add(parkSpot);
-                      } else {
-                        ParkSpotMarker marker = ParkSpotMarker(
-                          point: parkSpot.latLng,
-                          builder: (BuildContext context) => const Icon(
-                            Icons.location_on,
-                          ),
-                          parkSpot: parkSpot,
-                        );
-                        markersToAdd.add(marker);
-                        _existingMarkerPositions.add(parkSpot.latLng);
-                      }
+                      markersToAdd.add(marker);
+                      existingMarkerPositions.add(parkSpot.latLng);
                     }
                   },
                 );
               },
             );
 
-            // Remove expired spots from Firebase
-            expiredSpots.forEach((expiredSpot) {
-              querySnapshot.docs.forEach((doc) {
-                AppUser user = AppUser.fromSnapshot(doc);
-
-                FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .collection('parkSpots')
-                    .where('startTime', isEqualTo: expiredSpot.startTime)
-                    .where('endTime', isEqualTo: expiredSpot.endTime)
-                    .get()
-                    .then((querySnapshot) {
-                  querySnapshot.docs.forEach((doc) {
-                    doc.reference.delete();
-                  });
-                });
-              });
-
-              _existingMarkerPositions.remove(expiredSpot.latLng);
-            });
-
             setState(() {
-              markers = markersToAdd.isNotEmpty ? markersToAdd : markers;
+              // Update the markers by combining the existing markers and the new markers to add
+              markers = [...updatedMarkers, ...markersToAdd];
             });
           },
         );
