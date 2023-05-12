@@ -62,6 +62,8 @@ class _MapAppState extends State<MapApp> {
         FirebaseFirestore.instance.collection('users').get().then(
           (querySnapshot) {
             List<ParkSpotMarker> markersToAdd = [];
+            List<ParkSpot> expiredSpots = [];
+
             querySnapshot.docs.forEach(
               (doc) {
                 AppUser user = AppUser.fromSnapshot(doc);
@@ -70,23 +72,60 @@ class _MapAppState extends State<MapApp> {
                 user.parkSpots.forEach(
                   (parkSpot) {
                     if (!_existingMarkerPositions.contains(parkSpot.latLng)) {
-                      ParkSpotMarker marker = ParkSpotMarker(
-                        point: parkSpot.latLng,
-                        builder: (BuildContext context) => const Icon(
-                          Icons.location_on,
-                        ),
-                        parkSpot: parkSpot,
+                      DateTime currentTime = DateTime.now();
+                      List<String> endTimeParts = parkSpot.endTime.split(':');
+                      DateTime endTime = DateTime(
+                        DateTime.now().year,
+                        DateTime.now().month,
+                        DateTime.now().day,
+                        int.parse(endTimeParts[0]),
+                        int.parse(endTimeParts[1]),
+                        0,
                       );
-                      markersToAdd.add(marker);
-                      _existingMarkerPositions.add(parkSpot.latLng);
+
+                      if (currentTime.isAfter(endTime)) {
+                        expiredSpots.add(parkSpot);
+                      } else {
+                        ParkSpotMarker marker = ParkSpotMarker(
+                          point: parkSpot.latLng,
+                          builder: (BuildContext context) => const Icon(
+                            Icons.location_on,
+                          ),
+                          parkSpot: parkSpot,
+                        );
+                        markersToAdd.add(marker);
+                        _existingMarkerPositions.add(parkSpot.latLng);
+                      }
                     }
                   },
                 );
               },
             );
 
+            // Remove expired spots from Firebase
+            expiredSpots.forEach((expiredSpot) {
+              querySnapshot.docs.forEach((doc) {
+                AppUser user = AppUser.fromSnapshot(doc);
+
+                FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .collection('parkSpots')
+                    .where('startTime', isEqualTo: expiredSpot.startTime)
+                    .where('endTime', isEqualTo: expiredSpot.endTime)
+                    .get()
+                    .then((querySnapshot) {
+                  querySnapshot.docs.forEach((doc) {
+                    doc.reference.delete();
+                  });
+                });
+              });
+
+              _existingMarkerPositions.remove(expiredSpot.latLng);
+            });
+
             setState(() {
-              markers.addAll(markersToAdd);
+              markers = markersToAdd.isNotEmpty ? markersToAdd : markers;
             });
           },
         );
@@ -239,24 +278,35 @@ class _MapAppState extends State<MapApp> {
                           "${startHourController.text}:${startMinuteController.text}";
                       final String endTime =
                           "${endHourController.text}:${endMinuteController.text}";
+                      final CollectionReference parkSpotsCollection =
+                          FirebaseFirestore.instance.collection('parkSpots');
+
+                      final DocumentReference newParkSpotRef =
+                          parkSpotsCollection.doc();
                       final ParkSpot parkSpot = ParkSpot(
+                        uid: newParkSpotRef.id,
                         latLng: latLng,
                         startTime: startTime,
                         endTime: endTime,
+                        dateTime: DateTime.now(),
                         car: selectedCar,
                       );
+                      newParkSpotRef.set(parkSpot.toData());
                       final DocumentSnapshot<Map<String, dynamic>>
                           userDocSnapshot = await userDocRef.get();
                       final List<dynamic> parkSpotsData =
                           userDocSnapshot.get('parkSpots') ?? [];
                       final List<ParkSpot> parkSpots = parkSpotsData
                           .map((data) => ParkSpot(
+                                uid: data['uid'] as String,
                                 latLng: LatLng(
                                   data['latLng'][0],
                                   data['latLng'][1],
                                 ),
                                 startTime: data['startTime'] as String,
                                 endTime: data['endTime'] as String,
+                                dateTime:
+                                    DateTime.parse(data['dateTime'] as String),
                                 car: Car(
                                   model: data['car']['model'] as String,
                                   licensePlate:
@@ -297,8 +347,9 @@ class _MapAppState extends State<MapApp> {
 
   @override
   void initState() {
+    print(DateTime.now());
+    print("${DateTime.now().hour}:${DateTime.now().minute}");
     super.initState();
-    
   }
 
   @override

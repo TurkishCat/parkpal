@@ -39,9 +39,12 @@ class AppUser {
       final lng = latLngData[1] as double;
 
       return ParkSpot(
+        uid: spotData['uid'] as String,
         latLng: LatLng(lat, lng),
         startTime: spotData['startTime'] as String,
         endTime: spotData['endTime'] as String,
+        dateTime: DateTime.parse(
+            spotData['dateTime'] as String), // Parse DateTime from string
         car: Car(
           model: spotData['car']['model'] as String,
           licensePlate: spotData['car']['licensePlate'] as String,
@@ -80,23 +83,29 @@ class Car {
 }
 
 class ParkSpot {
+  final String uid;
   final LatLng latLng;
   final String startTime;
   final String endTime;
+  final DateTime dateTime;
   final Car car;
 
   ParkSpot({
+    required this.uid,
     required this.latLng,
     required this.startTime,
     required this.endTime,
+    required this.dateTime,
     required this.car,
   });
 
   Map<String, dynamic> toData() {
     return {
+      'uid': uid,
       'latLng': [latLng.latitude, latLng.longitude],
       'startTime': startTime,
       'endTime': endTime,
+      'dateTime': dateTime.toString(), // Convert DateTime to string
       'car': {'model': car.model, 'licensePlate': car.licensePlate},
     };
   }
