@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:ui';
+import 'package:collection/collection.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -52,7 +54,7 @@ class _MapAppState extends State<MapApp> {
   late LatLng _tappedLocation;
   int _currentIndex = 0;
   List<ParkSpotMarker> markers = [];
-  List<LatLng> _existingMarkerPositions = [];
+  Set<LatLng> existingMarkerPositions = {};
 
   void listenForMarkerUpdates() {
     EasyDebounce.debounce(
@@ -62,14 +64,35 @@ class _MapAppState extends State<MapApp> {
         FirebaseFirestore.instance.collection('users').get().then(
           (querySnapshot) {
             List<ParkSpotMarker> markersToAdd = [];
+            List<ParkSpotMarker> updatedMarkers =
+                List.from(markers); // Create a copy of the existing markers
+
             querySnapshot.docs.forEach(
               (doc) {
                 AppUser user = AppUser.fromSnapshot(doc);
-                // print(doc.data()); // Add this line to see the retrieved data
 
                 user.parkSpots.forEach(
                   (parkSpot) {
-                    if (!_existingMarkerPositions.contains(parkSpot.latLng)) {
+                    DateTime currentTime = DateTime.now();
+                    List<String> endTimeParts = parkSpot.endTime.split(':');
+                    DateTime endTime = DateTime(
+                      parkSpot.dateTime.year,
+                      parkSpot.dateTime.month,
+                      parkSpot.dateTime.day,
+                      int.parse(endTimeParts[0]),
+                      int.parse(endTimeParts[1]),
+                      0,
+                      0,
+                      0,
+                    );
+
+                    if (currentTime.isAfter(endTime)) {
+                      existingMarkerPositions.remove(parkSpot.latLng);
+                      markers
+                          .removeWhere((marker) => marker.parkSpot == parkSpot);
+                    } else if (!existingMarkerPositions
+                            .contains(parkSpot.latLng) &&
+                        endTime.isAfter(DateTime.now())) {
                       ParkSpotMarker marker = ParkSpotMarker(
                         point: parkSpot.latLng,
                         builder: (BuildContext context) => const Icon(
@@ -78,7 +101,7 @@ class _MapAppState extends State<MapApp> {
                         parkSpot: parkSpot,
                       );
                       markersToAdd.add(marker);
-                      _existingMarkerPositions.add(parkSpot.latLng);
+                      existingMarkerPositions.add(parkSpot.latLng);
                     }
                   },
                 );
@@ -86,7 +109,8 @@ class _MapAppState extends State<MapApp> {
             );
 
             setState(() {
-              markers.addAll(markersToAdd);
+              // Update the markers by combining the existing markers and the new markers to add
+              markers = [...updatedMarkers, ...markersToAdd];
             });
           },
         );
@@ -239,24 +263,35 @@ class _MapAppState extends State<MapApp> {
                           "${startHourController.text}:${startMinuteController.text}";
                       final String endTime =
                           "${endHourController.text}:${endMinuteController.text}";
+                      final CollectionReference parkSpotsCollection =
+                          FirebaseFirestore.instance.collection('parkSpots');
+
+                      final DocumentReference newParkSpotRef =
+                          parkSpotsCollection.doc();
                       final ParkSpot parkSpot = ParkSpot(
+                        uid: newParkSpotRef.id,
                         latLng: latLng,
                         startTime: startTime,
                         endTime: endTime,
+                        dateTime: DateTime.now(),
                         car: selectedCar,
                       );
+                      newParkSpotRef.set(parkSpot.toData());
                       final DocumentSnapshot<Map<String, dynamic>>
                           userDocSnapshot = await userDocRef.get();
                       final List<dynamic> parkSpotsData =
                           userDocSnapshot.get('parkSpots') ?? [];
                       final List<ParkSpot> parkSpots = parkSpotsData
                           .map((data) => ParkSpot(
+                                uid: data['uid'] as String,
                                 latLng: LatLng(
                                   data['latLng'][0],
                                   data['latLng'][1],
                                 ),
                                 startTime: data['startTime'] as String,
                                 endTime: data['endTime'] as String,
+                                dateTime:
+                                    DateTime.parse(data['dateTime'] as String),
                                 car: Car(
                                   model: data['car']['model'] as String,
                                   licensePlate:
@@ -297,8 +332,9 @@ class _MapAppState extends State<MapApp> {
 
   @override
   void initState() {
+    print(DateTime.now());
+    print("${DateTime.now().hour}:${DateTime.now().minute}");
     super.initState();
-    
   }
 
   @override
@@ -491,6 +527,124 @@ class _MapAppState extends State<MapApp> {
             }).toList(),
           ),
         ],
+      );
+    } else if (_currentIndex == 1) {
+      return StreamBuilder<DocumentSnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .doc(FirebaseAuth.instance.currentUser!.uid)
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return Center(child: CircularProgressIndicator());
+          }
+
+          final parkSpotsData = snapshot.data!.get('parkSpots') ?? [];
+          final List<dynamic> parkSpots = parkSpotsData
+              .map((data) => ParkSpot(
+                    uid: data['uid'] as String,
+                    latLng: LatLng(data['latLng'][0], data['latLng'][1]),
+                    startTime: data['startTime'] as String,
+                    endTime: data['endTime'] as String,
+                    dateTime: DateTime.parse(data['dateTime']
+                        as String), // Convert string to DateTime
+                    car: Car(
+                      licensePlate: data['car']['licensePlate'] as String,
+                      model: data['car']['model'] as String,
+                    ),
+                  ))
+              .toList();
+
+          final List<ParkSpot> activeParkSpots = [];
+          final List<ParkSpot> expiredParkSpots = [];
+
+          parkSpots.forEach((parkSpot) {
+            List<String> endTimeParts = parkSpot.endTime.split(':');
+            DateTime endTime = DateTime(
+              parkSpot.dateTime.year,
+              parkSpot.dateTime.month,
+              parkSpot.dateTime.day,
+              int.parse(endTimeParts[0]),
+              int.parse(endTimeParts[1]),
+              0,
+              0,
+              0,
+            );
+            if (endTime.isAfter(DateTime.now())) {
+              activeParkSpots.add(parkSpot);
+            } else {
+              expiredParkSpots.add(parkSpot);
+            }
+          });
+
+          if (parkSpots.isEmpty) {
+            return Center(child: Text('You have no park spots.'));
+          }
+
+          return ListView(
+            children: [
+              ListTile(
+                title: Text('Active Sessions'),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: activeParkSpots.length,
+                itemBuilder: (context, index) {
+                  final parkSpot = activeParkSpots[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(
+                          'Car: ${parkSpot.car.model} \nLicenseplate: ${parkSpot.car.licensePlate}'),
+                      subtitle: Text(
+                        'Start Time: ${parkSpot.startTime} - End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
+                      ),
+                      trailing: IconButton(
+                        icon: Icon(Icons.delete),
+                        onPressed: () async {
+                          final userRef = FirebaseFirestore.instance
+                              .collection('users')
+                              .doc(FirebaseAuth.instance.currentUser!.uid);
+                          final DocumentSnapshot userSnapshot =
+                              await userRef.get();
+                          final List<dynamic> parkSpots =
+                              userSnapshot.get('parkSpots') ?? [];
+
+                          parkSpots.removeWhere(
+                              (data) => data['uid'] == parkSpot.uid);
+
+                          await userRef.update({
+                            'parkSpots': parkSpots,
+                          });
+                        },
+                      ),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                title: Text('Expired Sessions'),
+              ),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: NeverScrollableScrollPhysics(),
+                itemCount: expiredParkSpots.length,
+                itemBuilder: (context, index) {
+                  final parkSpot = expiredParkSpots[index];
+                  return Card(
+                    child: ListTile(
+                      title: Text(
+                          'Car: ${parkSpot.car.model} \nLicenseplate: ${parkSpot.car.licensePlate}'),
+                      subtitle: Text(
+                        'Start Time: ${parkSpot.startTime} - End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ],
+          );
+        },
       );
     } else if (_currentIndex == 2) {
       return Column(
