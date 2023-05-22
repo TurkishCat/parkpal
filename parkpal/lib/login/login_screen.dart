@@ -1,7 +1,11 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
+import 'package:parkpal/main.dart';
+import 'package:uuid/uuid.dart';
 import './user.dart';
 
 class LoginPage extends StatefulWidget {
@@ -18,19 +22,33 @@ class _LoginPageState extends State<LoginPage> {
 
   void _login() async {
     try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text,
-        password: _passwordController.text,
-      );
-      // Navigate to the home page of your app
-      Navigator.pushNamed(context, '/home');
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'user-not-found') {
-        print('No user found for that email.');
-      } else if (e.code == 'wrong-password') {
-        print('Wrong password provided for that user.');
+      final query = await FirebaseFirestore.instance
+          .collection('users')
+          .where('email', isEqualTo: _emailController.text)
+          .get();
+      final users = query.docs.map((doc) => doc.data()).toList();
+      if (users.isNotEmpty) {
+        // Encrypt the entered password using SHA-256
+        final bytes = utf8.encode(_passwordController.text);
+        final digest = sha256.convert(bytes);
+        final encryptedPassword = digest.toString();
+
+        // Check if the encrypted password matches the one stored in Firestore
+        if (users[0]['password'] == encryptedPassword) {
+          // ignore: use_build_context_synchronously
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => MapApp(
+                      userEmail: users[0]['email'],
+                    )),
+          );
+
+          print('Invalid email or password.');
+        }
       }
+    } catch (e) {
+      print(e);
     }
   }
 
@@ -97,29 +115,31 @@ class _LoginPageState extends State<LoginPage> {
 
   void _register() async {
     try {
-      UserCredential userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: _emailControllerRegistering.text,
-        password: _passwordControllerRegistering.text,
-      );
+      final password = _passwordControllerRegistering.text;
+
+      // Encrypt the password using crypto
+      final bytes = utf8.encode(password);
+      final digest = sha256.convert(bytes);
+      final encryptedPassword = digest.toString();
+
       final CollectionReference _userCollection =
-      FirebaseFirestore.instance.collection('users');
+          FirebaseFirestore.instance.collection('users');
+
+      String uid = Uuid().v4(); // Generate a unique UID using the Uuid package
 
       AppUser appUser = AppUser(
-        uid: userCredential.user!.uid,
+        uid: uid,
         email: _emailControllerRegistering.text,
+        password: encryptedPassword,
         parkSpots: [],
         cars: [],
       );
 
-      await _userCollection.doc(userCredential.user!.uid).set(appUser.toData());
+      await _userCollection
+          .doc(uid)
+          .set(appUser.toData()); // Use the generated UID as the document ID
+
       // Navigate to the home page of your app
-    } on FirebaseAuthException catch (e) {
-      if (e.code == 'weak-password') {
-        print('The password provided is too weak.');
-      } else if (e.code == 'email-already-in-use') {
-        print('The account already exists for that email.');
-      }
     } catch (e) {
       print(e);
     }

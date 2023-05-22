@@ -26,28 +26,35 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   fbInit.initializeFirebase;
-  runApp(MainApp());
+  runApp(const MainApp());
 }
 
 class MainApp extends StatelessWidget {
-  const MainApp({super.key});
+  const MainApp({Key? key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'My App',
       initialRoute: '/',
-      routes: routes,
+      routes: {
+        '/': (context) => LoginPage(),
+        '/home': (context) => const MapApp(userEmail: ''), // Provide an initial value if needed
+      },
     );
   }
 }
 
+
 class MapApp extends StatefulWidget {
-  const MapApp({super.key});
+  final String userEmail;
+
+  const MapApp({Key? key, required this.userEmail}) : super(key: key);
 
   @override
   State<MapApp> createState() => _MapAppState();
 }
+
 
 class _MapAppState extends State<MapApp> {
   final MapController mapController = MapController();
@@ -339,6 +346,7 @@ class _MapAppState extends State<MapApp> {
 
   @override
   Widget build(BuildContext context) {
+    print('User email: ${widget.userEmail}');
     return Scaffold(
       appBar: AppBar(
         title: const Text("ParkPal"),
