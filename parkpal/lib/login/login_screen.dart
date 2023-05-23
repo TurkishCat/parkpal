@@ -182,18 +182,24 @@ class _LoginPageState extends State<LoginPage> {
                         _login();
                       }
                     },
-                    style: ElevatedButton.styleFrom(primary: Colors.red,
+                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red,
                     ),
                     child: Text('Login'),
                   ),
                   ElevatedButton(
                     onPressed:
                         _openRegisterDialog, // call the function to open the dialog
-                        style: ElevatedButton.styleFrom(primary: Colors.red,
+                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red,
                     ),
                     child: Text('Register'),
                   ),
                 ],
+              ),
+              Expanded(
+              child: Container(
+                alignment: Alignment.bottomCenter,
+                child: Image.asset('assets/images/parkpal_red_clean.png'), // Vervang 'your_image.jpg' met de juiste asset-locatie van je foto
+              ),
               ),
             ],
           ),
