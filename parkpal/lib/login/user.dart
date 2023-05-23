@@ -44,7 +44,6 @@ class AppUser {
       return ParkSpot(
         uid: spotData['uid'] as String,
         latLng: LatLng(lat, lng),
-        startTime: spotData['startTime'] as String,
         endTime: spotData['endTime'] as String,
         dateTime: DateTime.parse(
             spotData['dateTime'] as String), // Parse DateTime from string
@@ -52,6 +51,7 @@ class AppUser {
           model: spotData['car']['model'] as String,
           licensePlate: spotData['car']['licensePlate'] as String,
         ),
+        email: data['email'] as String,
       );
     }).toList();
 
@@ -90,31 +90,33 @@ class Car {
 class ParkSpot {
   final String uid;
   final LatLng latLng;
-  final String startTime;
+  
   final String endTime;
   final DateTime dateTime;
-  final Car car;
+  final Car? car;
+  final String email; // New email field
 
   ParkSpot({
     required this.uid,
     required this.latLng,
-    required this.startTime,
     required this.endTime,
     required this.dateTime,
     required this.car,
+    required this.email, // Added email field to the constructor
   });
 
   Map<String, dynamic> toData() {
     return {
       'uid': uid,
       'latLng': [latLng.latitude, latLng.longitude],
-      'startTime': startTime,
       'endTime': endTime,
       'dateTime': dateTime.toString(), // Convert DateTime to string
-      'car': {'model': car.model, 'licensePlate': car.licensePlate},
+      'car': {'model': car?.model, 'licensePlate': car?.licensePlate},
+      'email': email, // Include email field in the data map
     };
   }
 }
+
 
 class ParkSpotMarker extends Marker {
   final ParkSpot parkSpot;
