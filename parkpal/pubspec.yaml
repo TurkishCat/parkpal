@@ -27,8 +27,8 @@ dependencies:
   firebase_auth: ^4.2.2
   cloud_firestore: ^4.6.0
   easy_debounce: ^2.0.3
- 
-
+  crypto: ^3.0.1
+  uuid: ^3.0.4
 
 dev_dependencies:
   flutter_test:
