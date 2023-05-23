@@ -384,7 +384,7 @@ class _MapAppState extends State<MapApp> {
                     TextField(
                       controller: _licensePlateController,
                       decoration: const InputDecoration(
-                        hintText: 'License Plate',
+                        hintText: 'Car Colour',
                       ),
                     ),
                     const SizedBox(height: 16.0),
@@ -531,7 +531,7 @@ class _MapAppState extends State<MapApp> {
                               children: [
                                 Text('End Time: ${parkSpot.endTime}'),
                                 Text(
-                                    'License Plate: ${parkSpot.car?.licensePlate}'),
+                                    'Car Colour: ${parkSpot.car?.licensePlate}'),
                                 // Add spacing
                                 if (parkSpot.email != widget.userEmail)
                                   // Conditionally show the row
