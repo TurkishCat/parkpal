@@ -150,6 +150,7 @@ class _LoginPageState extends State<LoginPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Login'),
+        backgroundColor: Colors.red,
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -181,11 +182,15 @@ class _LoginPageState extends State<LoginPage> {
                         _login();
                       }
                     },
+                    style: ElevatedButton.styleFrom(primary: Colors.red,
+                    ),
                     child: Text('Login'),
                   ),
                   ElevatedButton(
                     onPressed:
                         _openRegisterDialog, // call the function to open the dialog
+                        style: ElevatedButton.styleFrom(primary: Colors.red,
+                    ),
                     child: Text('Register'),
                   ),
                 ],
