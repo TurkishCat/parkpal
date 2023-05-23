@@ -570,8 +570,10 @@ class _MapAppState extends State<MapApp> {
                                             ),
                                           ),
                                           const SizedBox(
+                                            
                                               width: 16), // Add spacing
                                           DropdownButton<Car>(
+                                           
                                             value: selectedCar,
                                             onChanged: (newValue) {
                                               // Update selected car
@@ -579,6 +581,7 @@ class _MapAppState extends State<MapApp> {
                                                 selectedCar = newValue;
                                               });
                                             },
+                                             hint: Text(selectedCar!.licensePlate),
                                             items: cars?.map((car) {
                                                   return DropdownMenuItem<Car>(
                                                     value: car,
@@ -922,11 +925,9 @@ class _MapAppState extends State<MapApp> {
           ),
         ],
       );
-    } else if(_currentIndex == 3){
+    } else if (_currentIndex == 3) {
       return AccountPage();
-    }
-    
-    else {
+    } else {
       return const Center(
         child: Text('List View'),
       );
