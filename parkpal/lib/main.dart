@@ -166,7 +166,7 @@ class _MapAppState extends State<MapApp> {
               cars.map((car) {
                 return DropdownMenuItem<Car>(
                   value: car,
-                  child: Text(car.licensePlate),
+                  child: Text("${car.licensePlate} ${car.model}"),
                 );
               }),
             );
@@ -531,7 +531,7 @@ class _MapAppState extends State<MapApp> {
                               children: [
                                 Text('End Time: ${parkSpot.endTime}'),
                                 Text(
-                                    'Car Colour: ${parkSpot.car?.licensePlate}'),
+                                    "${parkSpot.car?.licensePlate} ${parkSpot.car?.model}"),
                                 // Add spacing
                                 if (parkSpot.email != widget.userEmail)
                                   // Conditionally show the row
@@ -586,7 +586,7 @@ class _MapAppState extends State<MapApp> {
                                                   return DropdownMenuItem<Car>(
                                                     value: car,
                                                     child:
-                                                        Text(car.licensePlate),
+                                                        Text("${car.licensePlate} ${car.model}"),
                                                   );
                                                 }).toList() ??
                                                 [],
