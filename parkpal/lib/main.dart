@@ -1,21 +1,13 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:ui';
-import 'package:collection/collection.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_map/flutter_map.dart';
-import 'package:http/http.dart' as http;
 import 'package:parkpal/backend/firebase_options.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'backend/firebaseinit.dart' as fbInit;
 import 'package:parkpal/login/login_screen.dart';
-import 'routes/routes.dart';
 import 'login/user.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 
@@ -39,12 +31,12 @@ class MainApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => LoginPage(),
-        '/home': (context) => const MapApp(userEmail: ''), // Provide an initial value if needed
+        '/home': (context) =>
+            const MapApp(userEmail: ''), // Provide an initial value if needed
       },
     );
   }
 }
-
 
 class MapApp extends StatefulWidget {
   final String userEmail;
@@ -54,7 +46,6 @@ class MapApp extends StatefulWidget {
   @override
   State<MapApp> createState() => _MapAppState();
 }
-
 
 class _MapAppState extends State<MapApp> {
   final MapController mapController = MapController();
@@ -71,14 +62,37 @@ class _MapAppState extends State<MapApp> {
         FirebaseFirestore.instance.collection('users').get().then(
           (querySnapshot) {
             List<ParkSpotMarker> markersToAdd = [];
-            List<ParkSpotMarker> updatedMarkers =
-                List.from(markers); // Create a copy of the existing markers
+            List<ParkSpotMarker> updatedMarkers = markers
+                .map((marker) => ParkSpotMarker(
+                      point: marker.point,
+                      builder: marker.builder,
+                      parkSpot: marker.parkSpot,
+                    ))
+                .toList();
 
             querySnapshot.docs.forEach(
               (doc) {
-                AppUser user = AppUser.fromSnapshot(doc);
+                final data = doc.data()!;
+                final parkSpotsData = data['parkSpots'] as List<dynamic>;
+                final userParkSpots = parkSpotsData.map((spotData) {
+                  final latLngData = spotData['latLng'] as List<dynamic>;
+                  final lat = latLngData[0] as double;
+                  final lng = latLngData[1] as double;
 
-                user.parkSpots.forEach(
+                  return ParkSpot(
+                    uid: spotData['uid'] as String,
+                    latLng: LatLng(lat, lng),
+                    startTime: spotData['startTime'] as String,
+                    endTime: spotData['endTime'] as String,
+                    dateTime: DateTime.parse(spotData['dateTime'] as String),
+                    car: Car(
+                      model: spotData['car']['model'] as String,
+                      licensePlate: spotData['car']['licensePlate'] as String,
+                    ),
+                  );
+                }).toList();
+
+                userParkSpots.forEach(
                   (parkSpot) {
                     DateTime currentTime = DateTime.now();
                     List<String> endTimeParts = parkSpot.endTime.split(':');
@@ -95,7 +109,7 @@ class _MapAppState extends State<MapApp> {
 
                     if (currentTime.isAfter(endTime)) {
                       existingMarkerPositions.remove(parkSpot.latLng);
-                      markers
+                      updatedMarkers
                           .removeWhere((marker) => marker.parkSpot == parkSpot);
                     } else if (!existingMarkerPositions
                             .contains(parkSpot.latLng) &&
@@ -116,8 +130,7 @@ class _MapAppState extends State<MapApp> {
             );
 
             setState(() {
-              // Update the markers by combining the existing markers and the new markers to add
-              markers = [...updatedMarkers, ...markersToAdd];
+              markers.addAll(markersToAdd);
             });
           },
         );
@@ -125,216 +138,208 @@ class _MapAppState extends State<MapApp> {
     );
   }
 
-  getUser(String type, String uid) async {
-    final User? user = FirebaseAuth.instance.currentUser;
-
-    final DocumentReference<Map<String, dynamic>> userDocRef =
-        FirebaseFirestore.instance.collection('users').doc(uid);
-    final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
-        await userDocRef.get();
-    if (type == 'snapshot') {
-      return userDocSnapshot;
-    }
-    if (type == 'ref') {
-      return userDocRef;
-    }
-  }
 
   void _handleTap(LatLng latLng) async {
-    final User? user = FirebaseAuth.instance.currentUser;
-    final DocumentReference<Map<String, dynamic>> userDocRef =
-        FirebaseFirestore.instance.collection('users').doc(user!.uid);
-    final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
-        await userDocRef.get();
+    final QuerySnapshot<Map<String, dynamic>> userQuerySnapshot =
+        await FirebaseFirestore.instance
+            .collection('users')
+            .where('email', isEqualTo: widget.userEmail)
+            .limit(1)
+            .get();
 
-    final TextEditingController startHourController = TextEditingController();
-    final TextEditingController startMinuteController = TextEditingController();
-    final TextEditingController endHourController = TextEditingController();
-    final TextEditingController endMinuteController = TextEditingController();
+    if (userQuerySnapshot.docs.isNotEmpty) {
+      final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
+          userQuerySnapshot.docs.first;
 
-    // ignore: use_build_context_synchronously
-    showModalBottomSheet(
-      context: context,
-      builder: (BuildContext context) {
-        final List<DropdownMenuItem<Car>> dropdownItems = [];
-        if (userDocSnapshot.exists) {
-          final List<dynamic> carsData = userDocSnapshot.get('cars') ?? [];
-          final List<Car> cars = carsData
-              .map((data) => Car(
-                    model: data['model'] as String,
-                    licensePlate: data['licensePlate'] as String,
-                  ))
-              .toList();
-          dropdownItems.addAll(
-            cars.map((car) {
-              return DropdownMenuItem<Car>(
-                value: car,
-                child: Text(car.licensePlate),
-              );
-            }),
-          );
-        }
+      final TextEditingController startHourController = TextEditingController();
+      final TextEditingController startMinuteController =
+          TextEditingController();
+      final TextEditingController endHourController = TextEditingController();
+      final TextEditingController endMinuteController = TextEditingController();
 
-        return Flexible(
-          child: Container(
-            padding: EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                const Text(
-                  "Do you want to park here?",
-                  style: TextStyle(
-                    fontSize: 20.0,
-                    fontWeight: FontWeight.bold,
+      // ignore: use_build_context_synchronously
+      showModalBottomSheet(
+        context: context,
+        builder: (BuildContext context) {
+          final List<DropdownMenuItem<Car>> dropdownItems = [];
+          if (userDocSnapshot.exists) {
+            final List<dynamic> carsData = userDocSnapshot.get('cars') ?? [];
+            final List<Car> cars = carsData
+                .map((data) => Car(
+                      model: data['model'] as String,
+                      licensePlate: data['licensePlate'] as String,
+                    ))
+                .toList();
+            dropdownItems.addAll(
+              cars.map((car) {
+                return DropdownMenuItem<Car>(
+                  value: car,
+                  child: Text(car.licensePlate),
+                );
+              }),
+            );
+          }
+
+          return SingleChildScrollView(
+            child: Container(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  const Text(
+                    "Do you want to park here?",
+                    style: TextStyle(
+                      fontSize: 20.0,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 20.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: TextField(
-                        controller: startHourController,
-                        decoration: const InputDecoration(
-                          labelText: "Start hour",
-                          border: OutlineInputBorder(),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: TextField(
+                          controller: startHourController,
+                          decoration: const InputDecoration(
+                            labelText: "Start hour",
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10.0),
-                    Flexible(
-                      child: TextField(
-                        controller: startMinuteController,
-                        decoration: const InputDecoration(
-                          labelText: "Start minute",
-                          border: OutlineInputBorder(),
+                      const SizedBox(width: 10.0),
+                      Flexible(
+                        child: TextField(
+                          controller: startMinuteController,
+                          decoration: const InputDecoration(
+                            labelText: "Start minute",
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10.0),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Flexible(
-                      child: TextField(
-                        controller: endHourController,
-                        decoration: const InputDecoration(
-                          labelText: "End hour",
-                          border: OutlineInputBorder(),
+                    ],
+                  ),
+                  const SizedBox(height: 10.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: TextField(
+                          controller: endHourController,
+                          decoration: const InputDecoration(
+                            labelText: "End hour",
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 10.0),
-                    Flexible(
-                      child: TextField(
-                        controller: endMinuteController,
-                        decoration: const InputDecoration(
-                          labelText: "End minute",
-                          border: OutlineInputBorder(),
+                      const SizedBox(width: 10.0),
+                      Flexible(
+                        child: TextField(
+                          controller: endMinuteController,
+                          decoration: const InputDecoration(
+                            labelText: "End minute",
+                            border: OutlineInputBorder(),
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20.0),
-                Row(
-                  children: [
-                    Flexible(
-                      child: DropdownButtonFormField<Car>(
-                        value: dropdownItems.isNotEmpty
-                            ? dropdownItems.first.value
-                            : null,
-                        items: dropdownItems,
-                        decoration: const InputDecoration(
-                          labelText: "Select car",
-                          border: OutlineInputBorder(),
+                    ],
+                  ),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: DropdownButtonFormField<Car>(
+                          value: dropdownItems.isNotEmpty
+                              ? dropdownItems.first.value
+                              : null,
+                          items: dropdownItems,
+                          decoration: const InputDecoration(
+                            labelText: "Select car",
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (value) {},
                         ),
-                        onChanged: (value) {},
                       ),
-                    ),
-                  ],
-                ),
-                ElevatedButton(
-                  onPressed: () async {
-                    final Car? selectedCar = dropdownItems.isNotEmpty
-                        ? dropdownItems.first.value
-                        : null;
-                    if (selectedCar != null &&
-                        startHourController.text.isNotEmpty &&
-                        startMinuteController.text.isNotEmpty &&
-                        endHourController.text.isNotEmpty &&
-                        endMinuteController.text.isNotEmpty) {
-                      final String startTime =
-                          "${startHourController.text}:${startMinuteController.text}";
-                      final String endTime =
-                          "${endHourController.text}:${endMinuteController.text}";
-                      final CollectionReference parkSpotsCollection =
-                          FirebaseFirestore.instance.collection('parkSpots');
+                    ],
+                  ),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final Car? selectedCar = dropdownItems.isNotEmpty
+                          ? dropdownItems.first.value
+                          : null;
+                      if (selectedCar != null &&
+                          startHourController.text.isNotEmpty &&
+                          startMinuteController.text.isNotEmpty &&
+                          endHourController.text.isNotEmpty &&
+                          endMinuteController.text.isNotEmpty) {
+                        final String startTime =
+                            "${startHourController.text}:${startMinuteController.text}";
+                        final String endTime =
+                            "${endHourController.text}:${endMinuteController.text}";
+                        final CollectionReference<Map<String, dynamic>>
+                            parkSpotsCollection =
+                            FirebaseFirestore.instance.collection('parkSpots');
 
-                      final DocumentReference newParkSpotRef =
-                          parkSpotsCollection.doc();
-                      final ParkSpot parkSpot = ParkSpot(
-                        uid: newParkSpotRef.id,
-                        latLng: latLng,
-                        startTime: startTime,
-                        endTime: endTime,
-                        dateTime: DateTime.now(),
-                        car: selectedCar,
-                      );
-                      newParkSpotRef.set(parkSpot.toData());
-                      final DocumentSnapshot<Map<String, dynamic>>
-                          userDocSnapshot = await userDocRef.get();
-                      final List<dynamic> parkSpotsData =
-                          userDocSnapshot.get('parkSpots') ?? [];
-                      final List<ParkSpot> parkSpots = parkSpotsData
-                          .map((data) => ParkSpot(
-                                uid: data['uid'] as String,
-                                latLng: LatLng(
-                                  data['latLng'][0],
-                                  data['latLng'][1],
-                                ),
-                                startTime: data['startTime'] as String,
-                                endTime: data['endTime'] as String,
-                                dateTime:
-                                    DateTime.parse(data['dateTime'] as String),
-                                car: Car(
-                                  model: data['car']['model'] as String,
-                                  licensePlate:
-                                      data['car']['licensePlate'] as String,
-                                ),
-                              ))
-                          .toList();
-                      parkSpots.add(parkSpot);
-                      await userDocRef.update({
-                        'parkSpots':
-                            parkSpots.map((spot) => spot.toData()).toList(),
-                      });
+                        final DocumentReference<Map<String, dynamic>>
+                            newParkSpotRef = parkSpotsCollection.doc();
+                        final ParkSpot parkSpot = ParkSpot(
+                          uid: newParkSpotRef.id,
+                          latLng: latLng,
+                          startTime: startTime,
+                          endTime: endTime,
+                          dateTime: DateTime.now(),
+                          car: selectedCar,
+                        );
+                        newParkSpotRef.set(parkSpot.toData());
+                        final List<dynamic> parkSpotsData =
+                            userDocSnapshot.get('parkSpots') ?? [];
+                        final List<ParkSpot> parkSpots = parkSpotsData
+                            .map((data) => ParkSpot(
+                                  uid: data['uid'] as String,
+                                  latLng: LatLng(
+                                    data['latLng'][0],
+                                    data['latLng'][1],
+                                  ),
+                                  startTime: data['startTime'] as String,
+                                  endTime: data['endTime'] as String,
+                                  dateTime: DateTime.parse(
+                                      data['dateTime'] as String),
+                                  car: Car(
+                                    model: data['car']['model'] as String,
+                                    licensePlate:
+                                        data['car']['licensePlate'] as String,
+                                  ),
+                                ))
+                            .toList();
+                        parkSpots.add(parkSpot);
+                        await userDocSnapshot.reference.update({
+                          'parkSpots':
+                              parkSpots.map((spot) => spot.toData()).toList(),
+                        });
 
+                        Navigator.pop(context);
+                      }
+                    },
+                    child: const Text("Start your parking session."),
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.all<Color>(
+                        Colors.red,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10.0),
+                  OutlinedButton(
+                    onPressed: () {
                       Navigator.pop(context);
-                    }
-                  },
-                  child: const Text("Start your parking session."),
-                  style: ButtonStyle(
-                    backgroundColor: MaterialStateProperty.all<Color>(
-                      Colors.red,
-                    ),
+                    },
+                    child: const Text("Cancel"),
                   ),
-                ),
-                const SizedBox(height: 10.0),
-                OutlinedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Cancel"),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      },
-    );
+          );
+        },
+      );
+    }
   }
 
   @override
@@ -398,7 +403,8 @@ class _MapAppState extends State<MapApp> {
           return SingleChildScrollView(
             child: Container(
               padding: EdgeInsets.only(
-                  bottom: MediaQuery.of(context).viewInsets.bottom),
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+              ),
               child: Padding(
                 padding: EdgeInsets.all(16.0),
                 child: Column(
@@ -430,42 +436,48 @@ class _MapAppState extends State<MapApp> {
                     ElevatedButton(
                       onPressed: () async {
                         // Get the current user
-                        final User? user = FirebaseAuth.instance.currentUser;
-                        if (user == null) {
-                          // User is not signed in
-                          return;
-                        }
-
-                        // Create the new car object
-                        final Car car = Car(
-                          licensePlate: _licensePlateController.text,
-                          model: _carController.text,
-                        );
-
-                        // Add the new car object to the current user's cars list
-                        final DocumentReference<Map<String, dynamic>>
-                            userDocRef = FirebaseFirestore.instance
+                        final QuerySnapshot<Map<String, dynamic>>
+                            userQuerySnapshot = await FirebaseFirestore.instance
                                 .collection('users')
-                                .doc(user.uid);
-                        final DocumentSnapshot<Map<String, dynamic>>
-                            userDocSnapshot = await userDocRef.get();
-                        final List<dynamic> carsData =
-                            userDocSnapshot.get('cars') ?? [];
-                        final List<Car> cars = carsData
-                            .map((data) => Car(
-                                licensePlate: data['licensePlate'] as String,
-                                model: data['model'] as String))
-                            .toList();
-                        cars.add(car);
-                        await userDocRef.update(
-                            {'cars': cars.map((car) => car.toData()).toList()});
+                                .where('email', isEqualTo: widget.userEmail)
+                                .limit(1)
+                                .get();
 
-                        // Clear the input fields
-                        _licensePlateController.clear();
-                        _carController.clear();
+                        if (userQuerySnapshot.docs.isNotEmpty) {
+                          final DocumentSnapshot<Map<String, dynamic>>
+                              userDocSnapshot = userQuerySnapshot.docs.first;
+                          final DocumentReference<Map<String, dynamic>>
+                              userDocRef = userDocSnapshot.reference;
 
-                        // Close the modal
-                        Navigator.pop(context);
+                          // Create the new car object
+                          final Car car = Car(
+                            licensePlate: _licensePlateController.text,
+                            model: _carController.text,
+                          );
+
+                          // Add the new car object to the current user's cars list
+                          final List<dynamic> carsData =
+                              userDocSnapshot.get('cars') ?? [];
+                          final List<Car> cars = carsData
+                              .map((data) => Car(
+                                    licensePlate:
+                                        data['licensePlate'] as String,
+                                    model: data['model'] as String,
+                                  ))
+                              .toList();
+                          cars.add(car);
+
+                          await userDocRef.update({
+                            'cars': cars.map((car) => car.toData()).toList()
+                          });
+
+                          // Clear the input fields
+                          _licensePlateController.clear();
+                          _carController.clear();
+
+                          // Close the modal
+                          Navigator.pop(context);
+                        }
                       },
                       child: Text('Add'),
                       style: ButtonStyle(
@@ -513,7 +525,7 @@ class _MapAppState extends State<MapApp> {
                   onTap: () => showDialog(
                     context: context,
                     builder: (context) => AlertDialog(
-                      title: Text('Currently Parked Car Info'),
+                      title: const Text('Currently Parked Car Info'),
                       content: Column(
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -537,14 +549,16 @@ class _MapAppState extends State<MapApp> {
         ],
       );
     } else if (_currentIndex == 1) {
-      return StreamBuilder<DocumentSnapshot>(
+      return StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
         stream: FirebaseFirestore.instance
             .collection('users')
-            .doc(FirebaseAuth.instance.currentUser!.uid)
-            .snapshots(),
+            .where('email', isEqualTo: widget.userEmail)
+            .limit(1)
+            .snapshots()
+            .map((querySnapshot) => querySnapshot.docs.first),
         builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return Center(child: CircularProgressIndicator());
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
           }
 
           final parkSpotsData = snapshot.data!.get('parkSpots') ?? [];
@@ -586,17 +600,17 @@ class _MapAppState extends State<MapApp> {
           });
 
           if (parkSpots.isEmpty) {
-            return Center(child: Text('You have no park spots.'));
+            return const Center(child: Text('You have no park spots.'));
           }
 
           return ListView(
             children: [
-              ListTile(
+              const ListTile(
                 title: Text('Active Sessions'),
               ),
               ListView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: activeParkSpots.length,
                 itemBuilder: (context, index) {
                   final parkSpot = activeParkSpots[index];
@@ -608,34 +622,45 @@ class _MapAppState extends State<MapApp> {
                         'Start Time: ${parkSpot.startTime} - End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),
                       trailing: IconButton(
-                        icon: Icon(Icons.delete),
+                        icon: const Icon(Icons.delete),
                         onPressed: () async {
-                          final userRef = FirebaseFirestore.instance
-                              .collection('users')
-                              .doc(FirebaseAuth.instance.currentUser!.uid);
-                          final DocumentSnapshot userSnapshot =
-                              await userRef.get();
-                          final List<dynamic> parkSpots =
-                              userSnapshot.get('parkSpots') ?? [];
+                          final QuerySnapshot<Map<String, dynamic>>
+                              querySnapshot = await FirebaseFirestore.instance
+                                  .collection('users')
+                                  .where('email', isEqualTo: widget.userEmail)
+                                  .limit(1)
+                                  .get();
 
-                          parkSpots.removeWhere(
-                              (data) => data['uid'] == parkSpot.uid);
+                          if (querySnapshot.docs.isNotEmpty) {
+                            final DocumentSnapshot<Map<String, dynamic>>
+                                userSnapshot = querySnapshot.docs.first;
+                            final List<dynamic> parkSpots =
+                                userSnapshot.get('parkSpots') ?? [];
 
-                          await userRef.update({
-                            'parkSpots': parkSpots,
-                          });
+                            parkSpots.removeWhere(
+                                (data) => data['uid'] == parkSpot.uid);
+
+                            final DocumentReference<Map<String, dynamic>>
+                                userRef = FirebaseFirestore.instance
+                                    .collection('users')
+                                    .doc(userSnapshot.id);
+
+                            await userRef.update({
+                              'parkSpots': parkSpots,
+                            });
+                          }
                         },
                       ),
                     ),
                   );
                 },
               ),
-              ListTile(
+              const ListTile(
                 title: Text('Expired Sessions'),
               ),
               ListView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: expiredParkSpots.length,
                 itemBuilder: (context, index) {
                   final parkSpot = expiredParkSpots[index];
@@ -659,14 +684,16 @@ class _MapAppState extends State<MapApp> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Expanded(
-            child: StreamBuilder<DocumentSnapshot>(
+            child: StreamBuilder<DocumentSnapshot<Map<String, dynamic>>>(
               stream: FirebaseFirestore.instance
                   .collection('users')
-                  .doc(FirebaseAuth.instance.currentUser!.uid)
-                  .snapshots(),
+                  .where('email', isEqualTo: widget.userEmail)
+                  .limit(1)
+                  .snapshots()
+                  .map((querySnapshot) => querySnapshot.docs.first),
               builder: (context, snapshot) {
                 if (!snapshot.hasData) {
-                  return Center(child: CircularProgressIndicator());
+                  return const Center(child: CircularProgressIndicator());
                 }
 
                 final carsData = snapshot.data!.get('cars') ?? [];
@@ -677,7 +704,7 @@ class _MapAppState extends State<MapApp> {
                     .toList();
 
                 if (cars.isEmpty) {
-                  return Center(child: Text('You have no cars.'));
+                  return const Center(child: Text('You have no cars.'));
                 }
 
                 return ListView.builder(
@@ -689,19 +716,30 @@ class _MapAppState extends State<MapApp> {
                         title: Text(car.licensePlate),
                         subtitle: Text(car.model),
                         trailing: IconButton(
-                          icon: Icon(Icons.delete),
+                          icon: const Icon(Icons.delete),
                           onPressed: () async {
                             // Delete car from Firebase
                             await FirebaseFirestore.instance
                                 .collection('users')
-                                .doc(FirebaseAuth.instance.currentUser!.uid)
-                                .update({
-                              'cars': FieldValue.arrayRemove([
-                                {
-                                  'licensePlate': car.licensePlate,
-                                  'model': car.model
-                                }
-                              ])
+                                .where('email', isEqualTo: widget.userEmail)
+                                .limit(1)
+                                .get()
+                                .then((querySnapshot) {
+                              if (querySnapshot.docs.isNotEmpty) {
+                                final DocumentSnapshot<Map<String, dynamic>>
+                                    userDoc = querySnapshot.docs.first;
+                                final DocumentReference<Map<String, dynamic>>
+                                    userRef = userDoc.reference;
+
+                                userRef.update({
+                                  'cars': FieldValue.arrayRemove([
+                                    {
+                                      'licensePlate': car.licensePlate,
+                                      'model': car.model
+                                    }
+                                  ])
+                                });
+                              }
                             });
 
                             // Remove car from the list
@@ -718,12 +756,12 @@ class _MapAppState extends State<MapApp> {
             ),
           ),
           Padding(
-            padding: EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 16),
             child: ElevatedButton(
               onPressed: () {
                 _addCarModal(context);
               },
-              child: Text('Add a new car'),
+              child: const Text('Add a new car'),
               style: ButtonStyle(
                 backgroundColor: MaterialStateProperty.all<Color>(
                   Colors.red,
@@ -734,7 +772,7 @@ class _MapAppState extends State<MapApp> {
         ],
       );
     } else {
-      return Center(
+      return const Center(
         child: Text('List View'),
       );
     }
