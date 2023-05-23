@@ -6,12 +6,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class AppUser {
   final String uid;
   final String email;
+  final String password; // New field for password
   final List<ParkSpot> parkSpots;
   final List<Car> cars;
 
   AppUser({
     required this.uid,
     required this.email,
+    required this.password, // Add password parameter to the constructor
     this.parkSpots = const [],
     this.cars = const [],
   });
@@ -23,6 +25,7 @@ class AppUser {
     return {
       'uid': uid,
       'email': email,
+      'password': password, // Include password in the data map
       'parkSpots': parkSpotsData,
       'cars': carsData,
     };
@@ -62,11 +65,13 @@ class AppUser {
     return AppUser(
       uid: data['uid'] as String,
       email: data['email'] as String,
+      password: data['password'] as String, // Assign the password from data
       parkSpots: parkSpots,
       cars: cars,
     );
   }
 }
+
 
 class Car {
   final String model;
