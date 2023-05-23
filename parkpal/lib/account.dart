@@ -57,7 +57,7 @@ class AccountPage extends StatelessWidget {
                 _showPopup(
                   context,
                   'Veelgestelde vragen',
-                  """1. Wat is ParkPal? ParkPal is een handige mobiele app waarmee je gemakkelijk parkeerplaatsen kunt vinden en reserveren. Je kunt de app gebruiken om beschikbare parkeerplekken in de buurt te vinden, parkeertarieven te vergelijken en direct een parkeerplek te reserveren.
+                  """1. Wat is ParkPal?ParkPal is een handige mobiele app waarmee je gemakkelijk parkeerplaatsen kunt vinden en reserveren. Je kunt de app gebruiken om beschikbare parkeerplekken in de buurt te vinden, parkeertarieven te vergelijken en direct een parkeerplek te reserveren.
 
                     2. Hoe werkt het reserveren van een parkeerplek?
                       Het reserveren van een parkeerplek is eenvoudig met ParkPal. Nadat je de gewenste locatie hebt geselecteerd, kun je beschikbare parkeerplekken bekijken en de gewenste tijd en datum kiezen. Vervolgens kun je je reservering bevestigen en betalen via de app. Bij aankomst op de parkeerplaats wordt je reservering herkend en kun je gemakkelijk parkeren.
@@ -179,7 +179,11 @@ class AccountPage extends StatelessWidget {
               child: Text('Log uit'),
             ),
             Spacer(),
-            Image.asset('assets/images/parkpal_red_clean.png'),
+            SizedBox(
+              height: 400, // Pas deze waarde aan naar de gewenste hoogte
+              child: Image.asset('assets/images/parkpal_red_clean.png'),
+            ),
+
           ],
         ),
       ),
