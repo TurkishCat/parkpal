@@ -39,9 +39,10 @@ class _LoginPageState extends State<LoginPage> {
           Navigator.push(
             context,
             MaterialPageRoute(
-                builder: (context) => MapApp(
-                      userEmail: users[0]['email'],
-                    )),
+              builder: (context) => MapApp(
+                userEmail: users[0]['email'],
+              ),
+            ),
           );
 
           print('Invalid email or password.');
@@ -63,28 +64,28 @@ class _LoginPageState extends State<LoginPage> {
             children: [
               TextFormField(
                 controller: _emailControllerRegistering,
+                decoration: InputDecoration(
+                  labelText: 'Email',
+                ),
                 validator: (value) {
                   if (value!.isEmpty) {
                     return 'Please enter your email';
                   }
                   return null;
                 },
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                ),
               ),
               TextFormField(
                 controller: _passwordControllerRegistering,
+                obscureText: true,
+                decoration: InputDecoration(
+                  labelText: 'Password',
+                ),
                 validator: (value) {
                   if (value!.isEmpty) {
                     return 'Please enter your password';
                   }
                   return null;
                 },
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                ),
               ),
             ],
           ),
@@ -135,9 +136,7 @@ class _LoginPageState extends State<LoginPage> {
         cars: [],
       );
 
-      await _userCollection
-          .doc(uid)
-          .set(appUser.toData()); // Use the generated UID as the document ID
+      await _userCollection.doc(uid).set(appUser.toData());
 
       // Navigate to the home page of your app
     } catch (e) {
@@ -156,39 +155,66 @@ class _LoginPageState extends State<LoginPage> {
         child: Form(
           key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                controller: _emailController,
-                decoration: InputDecoration(
-                  labelText: 'Email',
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextFormField(
+                      controller: _emailController,
+                      decoration: InputDecoration(
+                        labelText: 'Email',
+                      ),
+                      validator: (value) {
+                        if (value!.isEmpty) {
+                          return 'Please enter your email';
+                        }
+                        return null;
+                      },
+                    ),
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: true,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                      ),
+                      validator: (value) {
+                        if (value!.isEmpty) {
+                          return 'Please enter your password';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 16.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        ElevatedButton(
+                          onPressed: () {
+                            if (_formKey.currentState!.validate()) {
+                              _login();
+                            }
+                          },
+                          child: Text('Login'),
+                        ),
+                        ElevatedButton(
+                          onPressed: _openRegisterDialog,
+                          child: Text('Register'),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Password',
+              Align(
+                alignment: Alignment.bottomCenter,
+                child: Image.asset(
+                  'assets/images/parkpal_red_clean.png',
+                  width: 400,
+                  height: 400,
+                  fit: BoxFit.contain,
                 ),
-              ),
-              SizedBox(height: 16.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      if (_formKey.currentState!.validate()) {
-                        _login();
-                      }
-                    },
-                    child: Text('Login'),
-                  ),
-                  ElevatedButton(
-                    onPressed:
-                        _openRegisterDialog, // call the function to open the dialog
-                    child: Text('Register'),
-                  ),
-                ],
               ),
             ],
           ),
