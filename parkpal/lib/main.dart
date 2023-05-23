@@ -10,6 +10,7 @@ import 'backend/firebaseinit.dart' as fbInit;
 import 'package:parkpal/login/login_screen.dart';
 import 'login/user.dart';
 import 'package:easy_debounce/easy_debounce.dart';
+import 'package:parkpal/account.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -771,7 +772,11 @@ class _MapAppState extends State<MapApp> {
           ),
         ],
       );
-    } else {
+    } else if(_currentIndex == 3){
+      return AccountPage();
+    }
+    
+    else {
       return const Center(
         child: Text('List View'),
       );
