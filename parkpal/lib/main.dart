@@ -89,6 +89,7 @@ class _MapAppState extends State<MapApp> {
                       model: spotData['car']['model'] as String,
                       licensePlate: spotData['car']['licensePlate'] as String,
                     ),
+                    email: data['email'] as String,
                   );
                 }).toList();
 
@@ -138,7 +139,6 @@ class _MapAppState extends State<MapApp> {
     );
   }
 
-
   void _handleTap(LatLng latLng) async {
     final QuerySnapshot<Map<String, dynamic>> userQuerySnapshot =
         await FirebaseFirestore.instance
@@ -151,11 +151,9 @@ class _MapAppState extends State<MapApp> {
       final DocumentSnapshot<Map<String, dynamic>> userDocSnapshot =
           userQuerySnapshot.docs.first;
 
-      final TextEditingController startHourController = TextEditingController();
-      final TextEditingController startMinuteController =
-          TextEditingController();
       final TextEditingController endHourController = TextEditingController();
       final TextEditingController endMinuteController = TextEditingController();
+      Car? selectedCar;
 
       // ignore: use_build_context_synchronously
       showModalBottomSheet(
@@ -199,31 +197,6 @@ class _MapAppState extends State<MapApp> {
                     children: [
                       Flexible(
                         child: TextField(
-                          controller: startHourController,
-                          decoration: const InputDecoration(
-                            labelText: "Start hour",
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10.0),
-                      Flexible(
-                        child: TextField(
-                          controller: startMinuteController,
-                          decoration: const InputDecoration(
-                            labelText: "Start minute",
-                            border: OutlineInputBorder(),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10.0),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Flexible(
-                        child: TextField(
                           controller: endHourController,
                           decoration: const InputDecoration(
                             labelText: "End hour",
@@ -248,31 +221,24 @@ class _MapAppState extends State<MapApp> {
                     children: [
                       Flexible(
                         child: DropdownButtonFormField<Car>(
-                          value: dropdownItems.isNotEmpty
-                              ? dropdownItems.first.value
-                              : null,
+                          value: selectedCar,
                           items: dropdownItems,
                           decoration: const InputDecoration(
                             labelText: "Select car",
                             border: OutlineInputBorder(),
                           ),
-                          onChanged: (value) {},
+                          onChanged: (value) {
+                            selectedCar = value;
+                          },
                         ),
                       ),
                     ],
                   ),
                   ElevatedButton(
                     onPressed: () async {
-                      final Car? selectedCar = dropdownItems.isNotEmpty
-                          ? dropdownItems.first.value
-                          : null;
                       if (selectedCar != null &&
-                          startHourController.text.isNotEmpty &&
-                          startMinuteController.text.isNotEmpty &&
                           endHourController.text.isNotEmpty &&
                           endMinuteController.text.isNotEmpty) {
-                        final String startTime =
-                            "${startHourController.text}:${startMinuteController.text}";
                         final String endTime =
                             "${endHourController.text}:${endMinuteController.text}";
                         final CollectionReference<Map<String, dynamic>>
@@ -284,31 +250,33 @@ class _MapAppState extends State<MapApp> {
                         final ParkSpot parkSpot = ParkSpot(
                           uid: newParkSpotRef.id,
                           latLng: latLng,
-                          startTime: startTime,
                           endTime: endTime,
                           dateTime: DateTime.now(),
-                          car: selectedCar,
+                          car: selectedCar!,
+                          email: widget.userEmail,
                         );
                         newParkSpotRef.set(parkSpot.toData());
                         final List<dynamic> parkSpotsData =
                             userDocSnapshot.get('parkSpots') ?? [];
                         final List<ParkSpot> parkSpots = parkSpotsData
-                            .map((data) => ParkSpot(
-                                  uid: data['uid'] as String,
-                                  latLng: LatLng(
-                                    data['latLng'][0],
-                                    data['latLng'][1],
-                                  ),
-                                  startTime: data['startTime'] as String,
-                                  endTime: data['endTime'] as String,
-                                  dateTime: DateTime.parse(
-                                      data['dateTime'] as String),
-                                  car: Car(
-                                    model: data['car']['model'] as String,
-                                    licensePlate:
-                                        data['car']['licensePlate'] as String,
-                                  ),
-                                ))
+                            .map(
+                              (data) => ParkSpot(
+                                uid: data['uid'] as String,
+                                latLng: LatLng(
+                                  data['latLng'][0],
+                                  data['latLng'][1],
+                                ),
+                                endTime: data['endTime'] as String,
+                                dateTime:
+                                    DateTime.parse(data['dateTime'] as String),
+                                car: Car(
+                                  model: data['car']['model'] as String,
+                                  licensePlate:
+                                      data['car']['licensePlate'] as String,
+                                ),
+                                email: data['email'] as String,
+                              ),
+                            )
                             .toList();
                         parkSpots.add(parkSpot);
                         await userDocSnapshot.reference.update({
@@ -518,7 +486,7 @@ class _MapAppState extends State<MapApp> {
           ),
           MarkerLayer(
             markers: markers.map((marker) {
-              final parkSpot = (marker as ParkSpotMarker).parkSpot;
+              final parkSpot = (marker).parkSpot;
               return ParkSpotMarker(
                 point: parkSpot.latLng,
                 builder: (context) => GestureDetector(
@@ -530,7 +498,6 @@ class _MapAppState extends State<MapApp> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Start Time: ${parkSpot.startTime}'),
                           Text('End Time: ${parkSpot.endTime}'),
                           Text('License Plate: ${parkSpot.car.licensePlate}'),
                         ],
@@ -565,15 +532,18 @@ class _MapAppState extends State<MapApp> {
           final List<dynamic> parkSpots = parkSpotsData
               .map((data) => ParkSpot(
                     uid: data['uid'] as String,
-                    latLng: LatLng(data['latLng'][0], data['latLng'][1]),
+                    latLng: LatLng(
+                      data['latLng'][0],
+                      data['latLng'][1],
+                    ),
                     startTime: data['startTime'] as String,
                     endTime: data['endTime'] as String,
-                    dateTime: DateTime.parse(data['dateTime']
-                        as String), // Convert string to DateTime
+                    dateTime: DateTime.parse(data['dateTime'] as String),
                     car: Car(
-                      licensePlate: data['car']['licensePlate'] as String,
                       model: data['car']['model'] as String,
+                      licensePlate: data['car']['licensePlate'] as String,
                     ),
+                    email: data['email'] as String, // Include the email field
                   ))
               .toList();
 
@@ -619,7 +589,7 @@ class _MapAppState extends State<MapApp> {
                       title: Text(
                           'Car: ${parkSpot.car.model} \nLicenseplate: ${parkSpot.car.licensePlate}'),
                       subtitle: Text(
-                        'Start Time: ${parkSpot.startTime} - End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
+                        'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),
                       trailing: IconButton(
                         icon: const Icon(Icons.delete),
@@ -669,7 +639,7 @@ class _MapAppState extends State<MapApp> {
                       title: Text(
                           'Car: ${parkSpot.car.model} \nLicenseplate: ${parkSpot.car.licensePlate}'),
                       subtitle: Text(
-                        'Start Time: ${parkSpot.startTime} - End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
+                        'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),
                     ),
                   );
