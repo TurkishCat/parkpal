@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/plugin_api.dart';
@@ -53,13 +54,14 @@ class _MapAppState extends State<MapApp> {
   int _currentIndex = 0;
   List<ParkSpotMarker> markers = [];
   Set<LatLng> existingMarkerPositions = {};
+  Set<ParkSpot> allParkSpots = {};
 
   void listenForMarkerUpdates() {
     EasyDebounce.debounce(
       'my-debouncer',
       const Duration(milliseconds: 1000),
       () {
-        FirebaseFirestore.instance.collection('users').get().then(
+        FirebaseFirestore.instance.collection('parkSpots').get().then(
           (querySnapshot) {
             List<ParkSpotMarker> markersToAdd = [];
             List<ParkSpotMarker> updatedMarkers = markers
@@ -73,59 +75,51 @@ class _MapAppState extends State<MapApp> {
             querySnapshot.docs.forEach(
               (doc) {
                 final data = doc.data()!;
-                final parkSpotsData = data['parkSpots'] as List<dynamic>;
-                final userParkSpots = parkSpotsData.map((spotData) {
-                  final latLngData = spotData['latLng'] as List<dynamic>;
-                  final lat = latLngData[0] as double;
-                  final lng = latLngData[1] as double;
+                final latLngData = data['latLng'] as List<dynamic>;
+                final lat = latLngData[0] as double;
+                final lng = latLngData[1] as double;
 
-                  return ParkSpot(
-                    uid: spotData['uid'] as String,
-                    latLng: LatLng(lat, lng),
-                    endTime: spotData['endTime'] as String,
-                    dateTime: DateTime.parse(spotData['dateTime'] as String),
-                    car: Car(
-                      model: spotData['car']['model'] as String,
-                      licensePlate: spotData['car']['licensePlate'] as String,
-                    ),
-                    email: data['email'] as String,
-                  );
-                }).toList();
-
-                userParkSpots.forEach(
-                  (parkSpot) {
-                    DateTime currentTime = DateTime.now();
-                    List<String> endTimeParts = parkSpot.endTime.split(':');
-                    DateTime endTime = DateTime(
-                      parkSpot.dateTime.year,
-                      parkSpot.dateTime.month,
-                      parkSpot.dateTime.day,
-                      int.parse(endTimeParts[0]),
-                      int.parse(endTimeParts[1]),
-                      0,
-                      0,
-                      0,
-                    );
-
-                    if (currentTime.isAfter(endTime)) {
-                      existingMarkerPositions.remove(parkSpot.latLng);
-                      updatedMarkers
-                          .removeWhere((marker) => marker.parkSpot == parkSpot);
-                    } else if (!existingMarkerPositions
-                            .contains(parkSpot.latLng) &&
-                        endTime.isAfter(DateTime.now())) {
-                      ParkSpotMarker marker = ParkSpotMarker(
-                        point: parkSpot.latLng,
-                        builder: (BuildContext context) => const Icon(
-                          Icons.location_on,
-                        ),
-                        parkSpot: parkSpot,
-                      );
-                      markersToAdd.add(marker);
-                      existingMarkerPositions.add(parkSpot.latLng);
-                    }
-                  },
+                final parkSpot = ParkSpot(
+                  uid: doc.id,
+                  latLng: LatLng(lat, lng),
+                  endTime: data['endTime'] as String,
+                  dateTime: DateTime.parse(data['dateTime'] as String),
+                  car: Car(
+                    model: data['car']['model'] as String,
+                    licensePlate: data['car']['licensePlate'] as String,
+                  ),
+                  email: data['email'] as String,
                 );
+
+                DateTime currentTime = DateTime.now();
+                List<String> endTimeParts = parkSpot.endTime.split(':');
+                DateTime endTime = DateTime(
+                  parkSpot.dateTime.year,
+                  parkSpot.dateTime.month,
+                  parkSpot.dateTime.day,
+                  int.parse(endTimeParts[0]),
+                  int.parse(endTimeParts[1]),
+                  0,
+                  0,
+                  0,
+                );
+
+                if (currentTime.isAfter(endTime)) {
+                  existingMarkerPositions.remove(parkSpot.latLng);
+                  updatedMarkers
+                      .removeWhere((marker) => marker.parkSpot == parkSpot);
+                } else if (!existingMarkerPositions.contains(parkSpot.latLng) &&
+                    endTime.isAfter(DateTime.now())) {
+                  ParkSpotMarker marker = ParkSpotMarker(
+                    point: parkSpot.latLng,
+                    builder: (BuildContext context) => const Icon(
+                      Icons.location_on,
+                    ),
+                    parkSpot: parkSpot,
+                  );
+                  markersToAdd.add(marker);
+                  existingMarkerPositions.add(parkSpot.latLng);
+                }
               },
             );
 
@@ -359,7 +353,7 @@ class _MapAppState extends State<MapApp> {
     );
   }
 
-  Future<Widget> _buildBody() async {
+  Widget _buildBody() {
     TextEditingController _licensePlateController = TextEditingController();
     TextEditingController _carController = TextEditingController();
 
@@ -373,33 +367,33 @@ class _MapAppState extends State<MapApp> {
                 bottom: MediaQuery.of(context).viewInsets.bottom,
               ),
               child: Padding(
-                padding: EdgeInsets.all(16.0),
+                padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
+                    const Text(
                       'Add a new car',
                       style: TextStyle(
                         fontSize: 18.0,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
                     TextField(
                       controller: _licensePlateController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'License Plate',
                       ),
                     ),
-                    SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
                     TextField(
                       controller: _carController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: 'Car',
                       ),
                     ),
-                    SizedBox(height: 16.0),
+                    const SizedBox(height: 16.0),
                     ElevatedButton(
                       onPressed: () async {
                         // Get the current user
@@ -446,7 +440,7 @@ class _MapAppState extends State<MapApp> {
                           Navigator.pop(context);
                         }
                       },
-                      child: Text('Add'),
+                      child: const Text('Add'),
                       style: ButtonStyle(
                         backgroundColor: MaterialStateProperty.all<Color>(
                           Colors.red,
@@ -473,12 +467,12 @@ class _MapAppState extends State<MapApp> {
           center: LatLng(
             51.228939,
             4.419669,
-          ), // Set the center of the map to San Francisco
+          ),
           zoom: 18.0,
           maxZoom: 18.0,
-          minZoom: 18.0, // Set the zoom level of the map
-          onTap: (tapPosition, latLng) => {
-            _handleTap(latLng),
+          minZoom: 18.0,
+          onTap: (tapPosition, latLng) {
+            _handleTap(latLng);
           },
         ),
         children: [
@@ -488,10 +482,18 @@ class _MapAppState extends State<MapApp> {
           ),
           MarkerLayer(
             markers: markers.map((marker) {
-              final parkSpot = marker.parkSpot;
-              // Retrieve user's cars
+              final parkSpot = (marker).parkSpot;
+
+              // Create TextEditingController instances
+              final reserveHourController = TextEditingController();
+              final reserveMinuteController = TextEditingController();
+
+              List<Car>? cars;
+              // Selected car value
+              Car? selectedCar;
 
               return ParkSpotMarker(
+                parkSpot: parkSpot,
                 point: parkSpot.latLng,
                 builder: (context) => GestureDetector(
                   onTap: () async {
@@ -509,113 +511,179 @@ class _MapAppState extends State<MapApp> {
                       if (userDocSnapshot.exists) {
                         final List<dynamic> carsData =
                             userDocSnapshot.get('cars') ?? [];
-                        final List<Car> cars = carsData
+                        cars = carsData
                             .map((data) => Car(
                                   model: data['model'] as String,
                                   licensePlate: data['licensePlate'] as String,
                                 ))
                             .toList();
-
-                        // ignore: use_build_context_synchronously
-                        showDialog(
-                          context: context,
-                          builder: (context) {
-                            Car?
-                                selectedCar; // Variable to store the selected car
-                            return AlertDialog(
-                              title: const Text('Currently Parked Car Info'),
-                              content: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('End Time: ${parkSpot.endTime}'),
-                                  Text(
-                                      'License Plate: ${parkSpot.car.licensePlate}'),
-                                  if (parkSpot.email != widget.userEmail) ...[
-                                    SizedBox(height: 20.0),
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: DropdownButtonFormField<Car>(
-                                            value: selectedCar,
-                                            items: cars.map((car) {
-                                              return DropdownMenuItem<Car>(
-                                                value: car,
-                                                child: Text(car.licensePlate),
-                                              );
-                                            }).toList(),
-                                            decoration: const InputDecoration(
-                                              labelText: "Select car",
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            onChanged: (value) {
-                                              selectedCar =
-                                                  value; // Update the selected car
-                                            },
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    SizedBox(height: 20.0),
-                                    Row(
-                                      children: [
-                                        Flexible(
-                                          child: TextField(
-                                            controller: endHourController,
-                                            decoration: const InputDecoration(
-                                              labelText: "Extend hours",
-                                              border: OutlineInputBorder(),
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 10.0),
-                                        Flexible(
-                                          child: TextField(
-                                            controller: endMinuteController,
-                                            decoration: const InputDecoration(
-                                              labelText: "Extend minutes",
-                                              border: OutlineInputBorder(),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ],
-                              ),
-                              actions: [
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop();
-                                  },
-                                  child: const Text('Cancel'),
-                                ),
-                                if (parkSpot.email != widget.userEmail) ...[
-                                  ElevatedButton(
-                                    onPressed: () async {
-                                      final String extendHours =
-                                          endHourController.text;
-                                      final String extendMinutes =
-                                          endMinuteController.text;
-
-                                      // Validate the extension hours and minutes here
-
-                                      if (selectedCar != null &&
-                                          extendHours.isNotEmpty &&
-                                          extendMinutes.isNotEmpty) {
-                                        // Perform the extension logic
-
-                                        Navigator.of(context).pop();
-                                      }
-                                    },
-                                    child: const Text('Extend'),
-                                  ),
-                                ],
-                              ],
-                            );
-                          },
-                        );
                       }
+                      // ignore: use_build_context_synchronously
+                      showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Currently Parked Car Info'),
+                            content: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('End Time: ${parkSpot.endTime}'),
+                                Text(
+                                    'License Plate: ${parkSpot.car?.licensePlate}'),
+                                // Add spacing
+                                if (parkSpot.email != widget.userEmail)
+                                  // Conditionally show the row
+
+                                  Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const Text(
+                                        'Put in the time to reserve this parking spot',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                      const SizedBox(height: 8), // Add spacing
+                                      Row(
+                                        children: [
+                                          Flexible(
+                                            child: TextFormField(
+                                              controller: reserveHourController,
+                                              // Link the controller
+                                              decoration: const InputDecoration(
+                                                labelText: 'Hour',
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                              width: 16), // Add spacing
+                                          Flexible(
+                                            child: TextFormField(
+                                              controller:
+                                                  reserveMinuteController,
+                                              // Link the controller
+                                              decoration: const InputDecoration(
+                                                labelText: 'Minute',
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                              width: 16), // Add spacing
+                                          DropdownButton<Car>(
+                                            value: selectedCar,
+                                            onChanged: (newValue) {
+                                              // Update selected car
+                                              setState(() {
+                                                selectedCar = newValue;
+                                              });
+                                            },
+                                            items: cars?.map((car) {
+                                                  return DropdownMenuItem<Car>(
+                                                    value: car,
+                                                    child:
+                                                        Text(car.licensePlate),
+                                                  );
+                                                }).toList() ??
+                                                [],
+                                          ),
+
+                                          const SizedBox(
+                                              width: 16), // Add spacing
+                                          ElevatedButton(
+                                            onPressed: () async {
+                                              final newEndTime =
+                                                  '${reserveHourController.text}:${reserveMinuteController.text}';
+
+                                              final parkSpotData = ParkSpot(
+                                                  endTime: newEndTime,
+                                                  car: selectedCar,
+                                                  email: widget.userEmail,
+                                                  uid: parkSpot.uid,
+                                                  latLng: parkSpot.latLng,
+                                                  dateTime: parkSpot.dateTime);
+
+                                              // Update parkSpot's endTime in Firebase Firestore
+                                              try {
+                                                final collectionRef =
+                                                    FirebaseFirestore.instance
+                                                        .collection(
+                                                            'parkSpots');
+                                                final documentRef =
+                                                    collectionRef
+                                                        .doc(parkSpot.uid);
+
+                                                await documentRef.update({
+                                                  'endTime': newEndTime,
+                                                  'car': {
+                                                    'model': selectedCar?.model,
+                                                    'licensePlate': selectedCar
+                                                        ?.licensePlate,
+                                                  },
+                                                  'email': widget.userEmail,
+                                                });
+
+                                                // Add documentRef to the user's parkSpots field
+
+                                                final userQuerySnapshot =
+                                                    await FirebaseFirestore
+                                                        .instance
+                                                        .collection('users')
+                                                        .where('email',
+                                                            isEqualTo: widget
+                                                                .userEmail)
+                                                        .limit(1)
+                                                        .get();
+
+                                                if (userQuerySnapshot
+                                                    .docs.isNotEmpty) {
+                                                  final userDocSnapshot =
+                                                      userQuerySnapshot
+                                                          .docs.first;
+
+                                                  final userRef =
+                                                      userDocSnapshot.reference;
+                                                  final userParkSpots =
+                                                      userDocSnapshot.get(
+                                                                  'parkSpots')
+                                                              as List<
+                                                                  dynamic>? ??
+                                                          [];
+                                                  userParkSpots.add(
+                                                      parkSpotData); // Add the parking spot data directly
+
+                                                  await userDocSnapshot
+                                                      .reference
+                                                      .update({
+                                                    'parkSpots': userParkSpots
+                                                        .map((spot) =>
+                                                            spot.toData())
+                                                        .toList(),
+                                                  });
+                                                }
+                                              } catch (error) {
+                                                print(
+                                                    'Error updating endTime in Firebase: $error');
+                                              }
+
+                                              // Close the dialog
+                                              Navigator.pop(context);
+                                            },
+                                            child: const Text('Extend'),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: Colors
+                                                  .red, // Set the button background color to red
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                              ],
+                            ),
+                          );
+                        },
+                      );
                     }
                   },
                   child: Icon(
@@ -623,7 +691,6 @@ class _MapAppState extends State<MapApp> {
                     color: Colors.red.withOpacity(0.6),
                   ),
                 ),
-                parkSpot: parkSpot,
               );
             }).toList(),
           ),
@@ -700,7 +767,7 @@ class _MapAppState extends State<MapApp> {
                   return Card(
                     child: ListTile(
                       title: Text(
-                          'Car: ${parkSpot.car.model} \nLicenseplate: ${parkSpot.car.licensePlate}'),
+                          'Car: ${parkSpot.car?.model} \nLicenseplate: ${parkSpot.car?.licensePlate}'),
                       subtitle: Text(
                         'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),
@@ -750,7 +817,7 @@ class _MapAppState extends State<MapApp> {
                   return Card(
                     child: ListTile(
                       title: Text(
-                          'Car: ${parkSpot.car.model} \nLicenseplate: ${parkSpot.car.licensePlate}'),
+                          'Car: ${parkSpot.car?.model} \nLicenseplate: ${parkSpot.car?.licensePlate}'),
                       subtitle: Text(
                         'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),

@@ -93,7 +93,7 @@ class ParkSpot {
   
   final String endTime;
   final DateTime dateTime;
-  final Car car;
+  final Car? car;
   final String email; // New email field
 
   ParkSpot({
@@ -111,7 +111,7 @@ class ParkSpot {
       'latLng': [latLng.latitude, latLng.longitude],
       'endTime': endTime,
       'dateTime': dateTime.toString(), // Convert DateTime to string
-      'car': {'model': car.model, 'licensePlate': car.licensePlate},
+      'car': {'model': car?.model, 'licensePlate': car?.licensePlate},
       'email': email, // Include email field in the data map
     };
   }
