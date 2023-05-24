@@ -36,13 +36,13 @@ class _LoginPageState extends State<LoginPage> {
         // Check if the encrypted password matches the one stored in Firestore
         if (users[0]['password'] == encryptedPassword) {
           // ignore: use_build_context_synchronously
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-                builder: (context) => MapApp(
-                      userEmail: users[0]['email'],
-                    )),
-          );
+          Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => MapApp(
+                        userEmail: users[0]['email'],
+                      )),
+              (Route<dynamic> route) => false);
 
           print('Invalid email or password.');
         }

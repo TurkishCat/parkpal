@@ -12,6 +12,7 @@ import 'package:parkpal/login/login_screen.dart';
 import 'login/user.dart';
 import 'package:easy_debounce/easy_debounce.dart';
 import 'package:parkpal/account.dart';
+import 'package:flutter/services.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,6 +21,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   fbInit.initializeFirebase;
+  
   runApp(const MainApp());
 }
 
@@ -768,7 +770,7 @@ class _MapAppState extends State<MapApp> {
                   return Card(
                     child: ListTile(
                       title: Text(
-                          'Car: ${parkSpot.car?.model} \nLicenseplate: ${parkSpot.car?.licensePlate}'),
+                          'Car: ${parkSpot.car?.licensePlate} ${parkSpot.car?.model}'),
                       subtitle: Text(
                         'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),
@@ -818,7 +820,7 @@ class _MapAppState extends State<MapApp> {
                   return Card(
                     child: ListTile(
                       title: Text(
-                          'Car: ${parkSpot.car?.model} \nLicenseplate: ${parkSpot.car?.licensePlate}'),
+                          'Car: ${parkSpot.car?.licensePlate} ${parkSpot.car?.model}'),
                       subtitle: Text(
                         'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
                       ),
