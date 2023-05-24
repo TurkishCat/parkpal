@@ -570,24 +570,32 @@ class _MapAppState extends State<MapApp> {
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(
-                                              width: 16), // Add spacing
-                                          DropdownButton<Car>(
-                                            value: selectedCar,
-                                            onChanged: (newValue) {
-                                              // Update selected car
-                                              setState(() {
-                                                selectedCar = newValue;
-                                              });
-                                            },
-                                            items: cars?.map((car) {
-                                                  return DropdownMenuItem<Car>(
-                                                    value: car,
-                                                    child: Text(
-                                                        "${car.licensePlate} ${car.model}"),
-                                                  );
-                                                }).toList() ??
-                                                [],
+                                        ],
+                                      ),
+                                      Row(
+                                        children: [
+                                          Container(
+                                            width: 300,
+                                            child: DropdownButtonFormField<Car>(
+                                              value: selectedCar,
+                                              items: cars?.map((car) {
+                                                    return DropdownMenuItem<Car>(
+                                                      value: car,
+                                                      child: Text(
+                                                          "${car.licensePlate} ${car.model}"),
+                                                    );
+                                                  }).toList() ??
+                                                  [],
+                                              decoration: InputDecoration(
+                                                labelText: 'Select Car',
+                                              ),
+                                              onChanged: (newValue) {
+                                                // Update selected car
+                                                setState(() {
+                                                  selectedCar = newValue;
+                                                });
+                                              },
+                                            ),
                                           ),
 
                                           const SizedBox(
@@ -655,12 +663,11 @@ class _MapAppState extends State<MapApp> {
                                                     'parkSpots': userParkSpots,
                                                   });
                                                 }
-                                                
                                               } catch (error) {
                                                 print('$error');
                                               }
 
-                                              // Close the dialog
+                                              // ignore: use_build_context_synchronously
                                               Navigator.pop(context);
                                             },
                                             child: const Text('Extend'),

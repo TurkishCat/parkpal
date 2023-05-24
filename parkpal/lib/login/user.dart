@@ -115,6 +115,23 @@ class ParkSpot {
       'email': email, // Include email field in the data map
     };
   }
+
+   factory ParkSpot.fromData(Map<String, dynamic> data) {
+    return ParkSpot(
+      uid: data['uid'] as String,
+      latLng: LatLng(
+        data['latLng'][0] as double,
+        data['latLng'][1] as double,
+      ),
+      endTime: data['endTime'] as String,
+      dateTime: DateTime.parse(data['dateTime'] as String),
+      car: Car(
+        model: data['car']['model'] as String,
+        licensePlate: data['car']['licensePlate'] as String,
+      ),
+      email: data['email'] as String,
+    );
+  }
 }
 
 
