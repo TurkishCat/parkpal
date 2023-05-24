@@ -21,7 +21,7 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
   fbInit.initializeFirebase;
-  
+
   runApp(const MainApp());
 }
 
@@ -315,7 +315,8 @@ class _MapAppState extends State<MapApp> {
 
   @override
   Widget build(BuildContext context) {
-    print('User email: ${widget.userEmail}');
+    
+    print(widget.userEmail);
     return Scaffold(
       appBar: AppBar(
         title: const Text("ParkPal"),
@@ -536,7 +537,7 @@ class _MapAppState extends State<MapApp> {
                                 Text(
                                     "${parkSpot.car?.licensePlate} ${parkSpot.car?.model}"),
                                 // Add spacing
-                                if (parkSpot.email != widget.userEmail)
+                                
                                   // Conditionally show the row
 
                                   Column(
@@ -581,7 +582,8 @@ class _MapAppState extends State<MapApp> {
                                             child: DropdownButtonFormField<Car>(
                                               value: selectedCar,
                                               items: cars?.map((car) {
-                                                    return DropdownMenuItem<Car>(
+                                                    return DropdownMenuItem<
+                                                        Car>(
                                                       value: car,
                                                       child: Text(
                                                           "${car.licensePlate} ${car.model}"),
@@ -665,6 +667,7 @@ class _MapAppState extends State<MapApp> {
                                                     'parkSpots': userParkSpots,
                                                   });
                                                 }
+                                                
                                               } catch (error) {
                                                 print('$error');
                                               }
@@ -773,36 +776,6 @@ class _MapAppState extends State<MapApp> {
                           'Car: ${parkSpot.car?.licensePlate} ${parkSpot.car?.model}'),
                       subtitle: Text(
                         'End Time: ${parkSpot.endTime}\n${parkSpot.dateTime.day}-${parkSpot.dateTime.month}-${parkSpot.dateTime.year}',
-                      ),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () async {
-                          final QuerySnapshot<Map<String, dynamic>>
-                              querySnapshot = await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .where('email', isEqualTo: widget.userEmail)
-                                  .limit(1)
-                                  .get();
-
-                          if (querySnapshot.docs.isNotEmpty) {
-                            final DocumentSnapshot<Map<String, dynamic>>
-                                userSnapshot = querySnapshot.docs.first;
-                            final List<dynamic> parkSpots =
-                                userSnapshot.get('parkSpots') ?? [];
-
-                            parkSpots.removeWhere(
-                                (data) => data['uid'] == parkSpot.uid);
-
-                            final DocumentReference<Map<String, dynamic>>
-                                userRef = FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(userSnapshot.id);
-
-                            await userRef.update({
-                              'parkSpots': parkSpots,
-                            });
-                          }
-                        },
                       ),
                     ),
                   );
