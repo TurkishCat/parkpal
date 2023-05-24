@@ -58,6 +58,7 @@ class _LoginPageState extends State<LoginPage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Register'),
+          backgroundColor: Colors.red,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -100,12 +101,14 @@ class _LoginPageState extends State<LoginPage> {
                 }
               },
               child: Text('Register'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             ),
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
               child: Text('Cancel'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             ),
           ],
         );
