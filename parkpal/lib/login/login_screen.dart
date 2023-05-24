@@ -57,8 +57,17 @@ class _LoginPageState extends State<LoginPage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Register'),
-          backgroundColor: Colors.red,
+          title: Container(
+            color:
+                Colors.red, // Set the background color of the title bar to red
+            child: const Padding(
+              padding: EdgeInsets.all(16.0),
+              child: Text(
+                'Register',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -185,24 +194,27 @@ class _LoginPageState extends State<LoginPage> {
                         _login();
                       }
                     },
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.red,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
                     ),
                     child: Text('Login'),
                   ),
                   ElevatedButton(
                     onPressed:
                         _openRegisterDialog, // call the function to open the dialog
-                        style: ElevatedButton.styleFrom(backgroundColor: Colors.red,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red,
                     ),
                     child: Text('Register'),
                   ),
                 ],
               ),
               Expanded(
-              child: Container(
-                alignment: Alignment.bottomCenter,
-                child: Image.asset('assets/images/parkpal_red_clean.png'), // Vervang 'your_image.jpg' met de juiste asset-locatie van je foto
-              ),
+                child: Container(
+                  alignment: Alignment.bottomCenter,
+                  child: Image.asset(
+                      'assets/images/parkpal_red_clean.png'), // Vervang 'your_image.jpg' met de juiste asset-locatie van je foto
+                ),
               ),
             ],
           ),

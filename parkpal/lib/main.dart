@@ -124,9 +124,7 @@ class _MapAppState extends State<MapApp> {
               },
             );
 
-            setState(() {
-              markers.addAll(markersToAdd);
-            });
+            setState(() {});
           },
         );
       },
@@ -462,6 +460,7 @@ class _MapAppState extends State<MapApp> {
 
       final TextEditingController endHourController = TextEditingController();
       final TextEditingController endMinuteController = TextEditingController();
+
       return FlutterMap(
         mapController: mapController,
         options: MapOptions(
@@ -596,15 +595,6 @@ class _MapAppState extends State<MapApp> {
                                               final newEndTime =
                                                   '${reserveHourController.text}:${reserveMinuteController.text}';
 
-                                              // final parkSpotData = ParkSpot(
-                                              //     endTime: newEndTime,
-                                              //     car: selectedCar,
-                                              //     email: widget.userEmail,
-                                              //     uid: parkSpot.uid,
-                                              //     latLng: parkSpot.latLng,
-                                              //     dateTime: parkSpot.dateTime);
-
-                                              // Update parkSpot's endTime in Firebase Firestore
                                               try {
                                                 final collectionRef =
                                                     FirebaseFirestore.instance
@@ -640,7 +630,6 @@ class _MapAppState extends State<MapApp> {
                                                         .limit(1)
                                                         .get();
 
-                                              
                                                 if (userQuerySnapshot
                                                     .docs.isNotEmpty) {
                                                   final userDocSnapshot =
