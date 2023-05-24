@@ -570,10 +570,8 @@ class _MapAppState extends State<MapApp> {
                                             ),
                                           ),
                                           const SizedBox(
-                                            
                                               width: 16), // Add spacing
                                           DropdownButton<Car>(
-                                           
                                             value: selectedCar,
                                             onChanged: (newValue) {
                                               // Update selected car
@@ -581,12 +579,11 @@ class _MapAppState extends State<MapApp> {
                                                 selectedCar = newValue;
                                               });
                                             },
-                                             hint: Text(selectedCar!.licensePlate),
                                             items: cars?.map((car) {
                                                   return DropdownMenuItem<Car>(
                                                     value: car,
-                                                    child:
-                                                        Text("${car.licensePlate} ${car.model}"),
+                                                    child: Text(
+                                                        "${car.licensePlate} ${car.model}"),
                                                   );
                                                 }).toList() ??
                                                 [],
@@ -599,13 +596,13 @@ class _MapAppState extends State<MapApp> {
                                               final newEndTime =
                                                   '${reserveHourController.text}:${reserveMinuteController.text}';
 
-                                              final parkSpotData = ParkSpot(
-                                                  endTime: newEndTime,
-                                                  car: selectedCar,
-                                                  email: widget.userEmail,
-                                                  uid: parkSpot.uid,
-                                                  latLng: parkSpot.latLng,
-                                                  dateTime: parkSpot.dateTime);
+                                              // final parkSpotData = ParkSpot(
+                                              //     endTime: newEndTime,
+                                              //     car: selectedCar,
+                                              //     email: widget.userEmail,
+                                              //     uid: parkSpot.uid,
+                                              //     latLng: parkSpot.latLng,
+                                              //     dateTime: parkSpot.dateTime);
 
                                               // Update parkSpot's endTime in Firebase Firestore
                                               try {
@@ -628,6 +625,10 @@ class _MapAppState extends State<MapApp> {
                                                 });
 
                                                 // Add documentRef to the user's parkSpots field
+                                                final documentSnapshot =
+                                                    await documentRef.get();
+                                                final parkSpotData =
+                                                    documentSnapshot.data();
 
                                                 final userQuerySnapshot =
                                                     await FirebaseFirestore
@@ -639,6 +640,7 @@ class _MapAppState extends State<MapApp> {
                                                         .limit(1)
                                                         .get();
 
+                                              
                                                 if (userQuerySnapshot
                                                     .docs.isNotEmpty) {
                                                   final userDocSnapshot =
@@ -653,21 +655,17 @@ class _MapAppState extends State<MapApp> {
                                                               as List<
                                                                   dynamic>? ??
                                                           [];
-                                                  userParkSpots.add(
-                                                      parkSpotData); // Add the parking spot data directly
+                                                  userParkSpots
+                                                      .add(parkSpotData);
 
                                                   await userDocSnapshot
                                                       .reference
                                                       .update({
-                                                    'parkSpots': userParkSpots
-                                                        .map((spot) =>
-                                                            spot.toData())
-                                                        .toList(),
+                                                    'parkSpots': userParkSpots,
                                                   });
                                                 }
                                               } catch (error) {
-                                                print(
-                                                    'Error updating endTime in Firebase: $error');
+                                                print('$error');
                                               }
 
                                               // Close the dialog
