@@ -124,7 +124,9 @@ class _MapAppState extends State<MapApp> {
               },
             );
 
-            setState(() {});
+            setState(() {
+              markers.addAll(markersToAdd);
+            });
           },
         );
       },
@@ -653,6 +655,7 @@ class _MapAppState extends State<MapApp> {
                                                     'parkSpots': userParkSpots,
                                                   });
                                                 }
+                                                
                                               } catch (error) {
                                                 print('$error');
                                               }
